@@ -1,0 +1,872 @@
+---
+title: 'EDA Project: Hospital Ratings data'
+output: html_document
+---
+
+## Overview
+
+This project will begin on Monday June 13th, and __conclude with a 10-15 minute presentation on Friday, June 24th (either during the morning session from 10:30 to 12 PM or in the afternoon from 1:30 to 3 PM)__. The goal of this project is to practice understanding the structure of a dataset, and to practice generating and evaluating hypotheses using fundamental EDA and data visualization techniques.
+
+## Deliverables
+
+Your team is expected to produce `R Markdown` slides (an example template will be provided shortly) to accompany your 10-15 minute presentation with the following information:
+
+* Explanation of the data structure of the dataset,
+
+* __Three hypotheses__ you are interested in exploring,
+
+* __Three data visualizations__ exploring the hypotheses, at least two of which must be multivariate.  __Each visualization must be in a different format__ from the other two, and you must have at least one categorical and one continuous visualization.
+
+* __One clustering example__,
+
+* Conclusions reached for the hypotheses based on your EDA and data visualizations.
+
+## Timeline
+
+There will be two submission deadlines:
+
+**Friday, June 17th @ 5:00 PM EST** - Each student will push their individual code for the project thus far to their GitHub accounts for review. We will then provide feedback on the code submitted.
+
+**Thursday, June 23rd @ 11:59 PM EST** - Slides and full code must be completed and ready for presentation. Send your slides to Prof Yurko's email ([ryurko@andrew.cmu.edu](mailto:ryurko@andrew.cmu.edu)).  All code, visualizations, and presentations must be made in `R`. Take advantage of examples from lecture and the presentation template, but also feel free to explore material online that may be relevant!
+
+
+## Data
+
+Your team is assigned the [__Hospital ratings data__](http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/eda_projects/hospitals.csv). This dataset was curated by the [CORGIS Dataset Project](https://corgis-edu.github.io/corgis/csv/hospitals/) to: _"allow consumers to directly compare across hospitals performance measure information related to heart attack, emergency department care, preventive care, stroke care, and other conditions. The data is part of an Administration-wide effort to increase the availability and accessibility of information on quality, utilization, and costs for effective, informed decision-making."_ Original source of data located [here](https://data.medicare.gov/data/hospital-compare).
+
+Each row of the dataset corresponds to a single hospital and has the following columns (with definitions borrowed the [online glossary](https://corgis-edu.github.io/corgis/csv/hospitals/):
+
+* `Facility.Name`: Name of the hospital
+* `Facility.City`: City in which the hospital is located
+* `Facility.State`: Two letter capitalized abbreviation of the State in which the hospital is located (e.g., AZ is Arizona)
+* `Facility.Type`: Kind of organization operating the hospital: one of Government, Private, Proprietary, Church, or Unknown
+* `Rating.Overall`: Overall rating between 1 and 5 stars, with 5 stars being the highest rating; -1 represents no rating.	
+* `Rating.Mortality`: Above, Same, Below, or Unknown comparison to national hospital mortality
+* `Rating.Safety`: Above, Same, Below, or Unknown comparison to national hospital safety
+* `Rating.Readmission`: Above, Same, Below, or Unknown comparison to national hospital readmission
+* `Rating.Experience`: Above, Same, Below, or Unknown comparison to national hospital patience experience
+* `Rating.Effectiveness`: Above, Same, Below, or Unknown comparison to national hospital effectiveness of care
+* `Rating.Timeliness`: Above, Same, Below, or Unknown comparison to national hospital timeliness of care
+* `Rating.Imaging`:	Above, Same, Below, or Unknown comparison to national hospital effective use of imaging
+* `Procedure.Heart Attack.Cost`: Average cost of care for heart attacks
+* `Procedure.Heart Attack.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for heart attacks
+* `Procedure.Heart Attack.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for heart attacks
+* `Procedure.Heart Failure.Cost`: Average cost of care for heart failure
+* `Procedure.Heart Failure.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for heart failures
+* `Procedure.Heart Failure.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for heart failures
+* `Procedure.Pneumonia.Cost`: Average cost of care for pneumonia
+* `Procedure.Pneumonia.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for pneumonia
+* `Procedure.Pneumonia.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for pneumonia
+* `Procedure.Hip Knee.Cost`: Average cost of care for hip or knee conditions
+* `Procedure.Hip Knee.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for hip or knee conditions
+* `Procedure.Hip Knee.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for hip or knee conditions
+
+```{r}
+
+ratings <- read_csv("http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/eda_projects/hospitals.csv")
+head(ratings)
+dim(ratings)
+summary(ratings)
+str(ratings)
+tail(ratings, 3)
+
+```
+
+
+
+1655142140231:rating %>%
+1655142140233:corr(facility.type, rating.overall)
+1655142157271:ratings %>%
+1655142157273:corr(facility.type, rating.overall)
+1655142222611:ratings %>%
+cor.test(facility.type, rating.overall, method = "pearson")
+1655142245716:ratings %>%
+1655142245723:cor.test(facility.type, Rating.Overall, method = "pearson")
+1655142261179:ratings %>%
+1655142261182:cor.test(facility.type, Rating.Mortality, method = "pearson")
+1655142284188:cor.test(ratings$facility.type, ratings$Rating.Mortality, method = "pearson")
+1655142304073:cor.test(ratings$facility.type, ratings$rating.mortality, method = "pearson")
+1655142321244:str(ratings)
+1655142384268:ratings %>%
+1655142384271:cor.test(ratings$`Procedure.Heart Attack.Cost`, ratings$`Procedure.Heart Failure.Cost`, method = "pearson")
+1655142394711:cor.test(ratings$`Procedure.Heart Attack.Cost`, ratings$`Procedure.Heart Failure.Cost`, method = "pearson")
+1655142474931:summary(ratings)
+
+```{r}
+
+ratings %>%
+  group_by(Facility.Type) %>%
+  summarize(mean(`Procedure.Heart Attack.Cost`), min(`Procedure.Heart Attack.Cost`), max(`Procedure.Heart Attack.Cost`))
+
+summary(ratings)
+```
+
+1655142475114:
+1655142763270:ratings %>%
+1655142763278:group_by(Facility.Type) %>%
+1655142763283:summarize(mean(`Procedure.Heart Attack.Cost`), max(`Procedure.Heart Attack.Cost`))
+1655142935779:summary(ratings)
+1655142935941:ratings %>%
+1655142935946:group_by(Facility.Type) %>%
+1655142935950:summarize(mean(`Procedure.Heart Attack.Cost`), max(`Procedure.Heart Attack.Cost`))
+1655142936021:ratings %>%
+1655142936025:group_by(Facility.Type) %>%
+1655142936029:summarize(mean(`Procedure.Heart Failure.Cost`), max(`Procedure.Heart Failure.Cost`))
+1655142936063:ratings %>%
+1655142936068:group_by(Facility.Type) %>%
+1655142936073:summarize(mean(`Procedure.Pneumonia.Cost`), max(`Procedure.Pneumonia.Cost`))
+1655142936112:ratings %>%
+1655142936114:group_by(Facility.Type) %>%
+1655142936117:summarize(mean(`Procedure.Hip Knee.Cost`), max(`Procedure.Hip Knee.Cost`))
+1655143142291:arrange(ratings, Facility.Type, Rating.Overall)
+
+```{r}
+ratings %>%
+  group_by(Facility.Type) %>%
+  summarize(mean(`Procedure.Hip Knee.Cost`), max(`Procedure.Hip Knee.Cost`))
+
+```
+
+
+```{r}
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Value`, y = `Procedure.Heart Attack.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Heart Attack Value", y = "Heart Attack Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+1655143521374:table(rating.readmission)
+```{r}
+
+table(ratings$Rating.Readmission)
+
+ratings %>%
+  ggplot(aes(x = Rating.Readmission))+
+  geom_histogram() +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = Rating.Readmission))+
+  geom_bar() +
+  theme_bw()
+
+table(ratings$Rating.Readmission)
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Value`, y = `Procedure.Heart Attack.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Heart Attack Value", y = "Heart Attack Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Failure.Value`, y = `Procedure.Heart Failure.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Heart Failure Value", y = "Heart Failure Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+```{r}
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`,
+             color = Facility.State)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+```{r}
+View(ratings)
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set1") +
+  labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+str(ratings)
+
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 2) +
+  scale_color_brewer(palette = "Set4") +
+  labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+```{r}
+install.packages("maps")
+install.packages("mapdata")
+library(maps)
+library(mapdata)
+library(maps)
+usa <- map_data('usa')
+usa
+ggplot(usa)
+library(usmap)
+install.packages("usmap")
+library(usmap)
+plot_usmap(states = Facility.State) +
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+plot_usmap(states = ratings$Facility.State) +
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+plot_usmap(regions = ratings$Facility.State) +
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+plot_usmap(regions = "counties") +
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+```
+
+```{r}
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Failure.Cost`, y = `Procedure.Heart Attack.Cost`)) +
+  geom_point(alpha = 0.75) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Failure.Cost`, y = `Procedure.Heart Attack.Cost`)) +
+  geom_point(alpha = 0.75) +
+  theme_bw()
+
+table(ratings$Facility.Type, ratings$Facility.Type)
+table(ratings$Facility.Type, ratings$avg(Rating.Overall))
+
+ratings %>%
+  group_by(Facility.Type) %>%
+  summarize(mean(Rating.Overall)) %>%
+  ggplot(aes(x = Facility.Type, y = mean(Rating.Overall))) +
+  geom_bar() +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = Facility.Type, y = mean(Rating.Overall))) +
+  geom_bar() +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = Facility.Type, y = mean(Rating.Overall))) +
+  geom_histogram() +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = Facility.Type, y = mean(Rating.Overall))) +
+  geom_point() +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = Facility.Type, y = mean(Rating.Overall))) +
+  geom_line() +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = Facility.Type, y = mean(Rating.Overall))) +
+  geom_line() +
+  theme_bw()
+
+ggplot(aes(x = Rating.Overall,
+           fill = Facility.Type)) +
+  geom_histogram(alpha = .5, position = "dodge") +
+  theme_bw() + 
+  theme(legend.position = "bottom")
+
+ratings %>%
+  ggplot(aes(x = avg(Rating.Experience),
+             fill = Facility.Type)) +
+  geom_bar(position = "dodge") + theme_bw()
+
+ratings %>%
+  ggplot(ratings, aes(x = `Procedure.Heart Attack.Value`,
+                      y = `Procedure.Heart Attack.Cost`)) +
+  geom_point() +
+  stat_summary(fun.data = "mean_cl_boot", colour = "red", size = 2)
+```
+
+```{r}
+#Density Curves
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Failure.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Value`,
+             y = `Procedure.Heart Attack.Cost`)) +
+  geom_density_ridges()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`)) +
+  geom_point() +
+  facet_wrap(~ Facility.Type, nrow = 2) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+
+#Mean HeartAttack Cost 
+state.by <- ratings %>% group_by(Facility.State)
+
+state_heart <- state.by %>% summarise(mean_cost = mean(`Procedure.Heart Attack.Cost`))
+
+colnames(state_heart)[1] <- 'state'
+
+plot_usmap(data = state_heart, values = "mean_cost", color = "red")
+
+#Mean Rating.Overall
+state.by <- ratings %>% group_by(Facility.State)
+state_heart <- state.by %>% summarise(mean_rating = mean(Rating.Overall))
+colnames(state_heart)[1] <- 'state'
+
+plot_usmap(data = state_heart, values = "mean_rating", color = "red") +
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+
+plot_usmap(data = state_heart, values = "mean_cost", color = "red") +
+  scale_fill_continuous(low = 'white', high = 'red')
+
+#all_cost
+plot_usmap(data = state_heart, values = "all_cost", color = "red") +
+  scale_fill_continuous(low = 'white', high = 'red')
+
+
+ratings %>%
+  mutate(all_cost = mean(`Procedure.Heart Attack.Cost`, `Procedure.Heart Failure.Cost`, `Procedure.Pneumonia.Cost`, `Procedure.Hip Knee.Cost`))
+
+ratings %>%
+  mutate(all_cost = sum(`Procedure.Heart Attack.Cost`, `Procedure.Heart Failure.Cost`, `Procedure.Pneumonia.Cost`, `Procedure.Hip Knee.Cost`))
+
+ratings %>%
+  mutate(all_cost = sum(`Procedure.Heart Attack.Cost`, `Procedure.Heart Failure.Cost`, `Procedure.Pneumonia.Cost`, `Procedure.Hip Knee.Cost`) / 4)
+
+ratings %>%
+  mutate(all_cost = (`Procedure.Heart Attack.Cost` + `Procedure.Heart Failure.Cost` + `Procedure.Pneumonia.Cost` + `Procedure.Hip Knee.Cost` / 4))
+
+ratings <- ratings %>%
+  mutate(all_cost = (`Procedure.Heart Attack.Cost` + `Procedure.Heart Failure.Cost` + `Procedure.Pneumonia.Cost` + `Procedure.Hip Knee.Cost` / 4))
+
+ratings <- ratings %>%
+  mutate(all_cost = (`Procedure.Heart Attack.Cost` + `Procedure.Heart Failure.Cost` + `Procedure.Pneumonia.Cost` + `Procedure.Hip Knee.Cost` / 4))
+
+# all_cost across all 4 procedures
+state.by <- ratings %>% group_by(Facility.State)
+state_heart <- state.by %>% summarise(mean_cost = all_cost)
+
+state.by <- ratings %>% group_by(Facility.State)
+state_heart <- state.by %>% summarise(mean_cost = all_cost)
+colnames(state_heart)[1] <- 'state'
+
+plot_usmap(data = state_heart, values = "mean_cost", color = "red") +
+  scale_fill_continuous(low = 'white', high = 'red')
+
+calculate_mode <- function(x) {
+  uniqx <- unique(x)
+  uniqx[which.max(tabulate(match(x,uniqx)))]
+}
+ratings %>%
+  group_by(Facility.State) %>%
+  summarise(color_map = calculate_mode(`Procedure.Heart Attack.Quality`))
+
+ratings %>%
+  mutate()
+
+ratings %>%
+  mutate(color_map = calculate_mode(`Procedure.Heart Attack.Quality`))
+
+state.by <- ratings %>% group_by(Facility.State)
+state_heart <- state.by %>% summarise(mean_cost = color_map)
+colnames(state_heart)[1] <- 'state'
+
+
+plot_usmap(data = state_heart, values = "color_map", color = "red") +
+  scale_fill_continuous(low = 'white', high = 'red')
+
+ratings %>%
+  
+
+
+
+```
+Hypothesis:
+
+1. Facility Type correlates with Rating Overall
+
+2. Facility state correlates with the overall cost
+
+3. Facility State correlates with cost/quality 
+1655145329764:table(ratings$Rating.Readmission)
+1655145329777:ratings %>%
+1655145329781:ggplot(aes(x = Rating.Readmission))+
+1655145329783:geom_bar() +
+1655145329786:theme_bw()
+1655145664847:ratings %>%
+1655145664851:ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+1655145664853:color = Facility.Type)) +
+1655145664855:geom_point(alpha = 2) +
+1655145664859:scale_color_brewer(palette = "Set4") +
+1655145664861:labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+1655145664863:color = "Facility Type") +
+1655145664865:theme_bw()
+1655145680069:ratings %>%
+1655145680071:ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+1655145680073:color = Facility.Type)) +
+1655145680075:geom_point(alpha = 2) +
+1655145680077:#scale_color_brewer(palette = "Set2") +
+1655145680079:labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+1655145680081:color = "Facility Type") +
+1655145680083:theme_bw()
+1655145775720:ratings %>%
+1655145775722:group_by(Facility.State) %>%
+1655145775725:summarize(mean(`Procedure.Heart Attack.Cost`), max(`Procedure.Heart Attack.Cost`))
+1655145895878:ratings %>%
+1655145895881:ggplot(aes(x = Facility.State, y = Rating.Safety)) +
+1655145895883:geom_point()
+1655145910389:ratings %>%
+1655145910391:ggplot(aes(x = `Procedure.Heart Attack.Value`, y = `Procedure.Heart Attack.Cost`,
+1655145910393:color = Facility.Type)) +
+1655145910395:geom_point(alpha = 0.5) +
+1655145910397:scale_color_brewer(palette = "Set2") +
+1655145910399:labs(x = "Heart Attack Value", y = "Heart Attack Cost of Care",
+1655145910403:color = "Facility Type") +
+1655145910405:theme_bw()
+1655145923512:ratings %>%
+1655145923515:ggplot(aes(x = Facility.State, y = Rating.Safety)) +
+1655145923518:geom_point()
+1655145940800:ratings %>%
+1655145940803:ggplot(aes(x = Facility.State, y = Rating.Safety)) +
+1655145940805:geom_bar()
+1655145955691:ratings %>%
+1655145955693:ggplot(aes(x = Facility.State, y = Rating.Safety)) +
+1655145955695:geom_histogram()
+1655146052515:ratings %>%
+1655146052516:ggplot(aes(x = Rating.Overall)) +
+1655146052518:geom_density(adjust = 3) +
+1655146052520:geom_rug(alpha = 0.5) +
+1655146052523:theme_bw()
+1655146084280:ratings %>%
+1655146084283:ggplot(aes(x = `Procedure.Heart Attack.Cost`)) +
+1655146084285:geom_density(adjust = 3) +
+1655146084287:geom_rug(alpha = 0.5) +
+1655146084288:theme_bw()
+1655146158842:ratings %>%
+1655146158845:ggplot(aes(x = `Procedure.Heart Attack.Cost`)) +
+1655146158847:geom_density(adjust = 3) +
+1655146158848:geom_rug(alpha = 0.5) +
+1655146158850:theme_bw()
+1655146180958:ratings %>%
+1655146180963:ggplot(aes(x = `Procedure.Heart Failure.Cost`)) +
+1655146180965:geom_density(adjust = 3) +
+1655146180967:geom_rug(alpha = 0.5) +
+1655146180968:theme_bw()
+1655146199272:ratings %>%
+1655146199273:ggplot(aes(x = `Procedure.Pneumonia.Cost`)) +
+1655146199275:geom_density(adjust = 3) +
+1655146199277:geom_rug(alpha = 0.5) +
+1655146199280:theme_bw()
+1655146212208:ratings %>%
+1655146212210:ggplot(aes(x = `Procedure.Hip Knee.Cost`)) +
+1655146212212:geom_density(adjust = 3) +
+1655146212214:geom_rug(alpha = 0.5) +
+1655146212215:theme_bw()
+1655146411334:ggplot(ratings, aes(Procedure.Hip Knee.Value, Procedure.Hip Knee.Cost)) +
+1655146449098:ratings %>%
+1655146449101:ggplot(ratings, aes(x = Procedure.Hip Knee.Value,
+1655146481965:ratings %>%
+1655146481968:ggplot(ratings, aes(x = `Procedure.Heart Attack.Value`,
+1655146481970:y = `Procedure.Heart Attack.Cost`)) +
+1655146481973:stat_summary(fun.data = "mean_cl_boot", colour = "red", size = 2)
+1655146513632:ratings %>%
+1655146513637:ggplot(ratings, aes(x = `Procedure.Heart Attack.Value`,
+1655146513639:y = `Procedure.Heart Attack.Cost`)) +
+1655146513641:geom_point() +
+1655146513646:stat_summary(fun.data = "mean_cl_boot", colour = "red", size = 2)
+1655146571550:ratings %>%
+1655146571553:ggplot(ratings, aes(x = `Procedure.Heart Attack.Value`,
+1655146571555:y = `Procedure.Heart Attack.Cost`)) +
+1655146571560:geom_point() +
+1655146571562:stat_summary(fun.data = "mean_cl_boot", colour = "red", size = 2)
+1655146682115:ratings %>%
+1655146682118:ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`)) +
+1655146682120:geom_point(alpha = 0.5) +
+1655146682122:facet_wrap(~ Facility.Type, nrow = 2) +
+1655146682124:scale_color_brewer(palette = "Set2") +
+1655146682127:labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+1655146682128:color = "Facility Type") +
+1655146682130:theme_bw()
+1655146737728:ratings %>%
+1655146737731:ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`)) +
+1655146737733:geom_bar() +
+1655146737735:facet_wrap(~ Facility.Type, nrow = 2) +
+1655146737737:scale_color_brewer(palette = "Set2") +
+1655146737739:labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+1655146737741:color = "Facility Type") +
+1655146737742:theme_bw()
+1655146753653:ratings %>%
+1655146753656:ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`)) +
+1655146753658:geom_histogram() +
+1655146753659:facet_wrap(~ Facility.Type, nrow = 2) +
+1655146753661:scale_color_brewer(palette = "Set2") +
+1655146753664:labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+1655146753666:color = "Facility Type") +
+1655146753669:theme_bw()
+1655146775572:ratings %>%
+1655146775575:ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`)) +
+1655146775576:geom_point() +
+1655146775578:facet_wrap(~ Facility.Type, nrow = 2) +
+1655146775580:scale_color_brewer(palette = "Set2") +
+1655146775582:labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+1655146775585:color = "Facility Type") +
+1655146775588:theme_bw()
+1655146943394:library(ggridges)
+1655146988535:ratings %>%
+1655146988539:ggplot(aes(x = `Procedure.Heart Attack.Value`,
+1655146988541:y = `Procedure.Heart Attack.Cost`)) +
+1655146988544:geom_density_ridges(rel_min_height = 0.01)
+1655147011573:ratings %>%
+1655147011575:ggplot(aes(x = `Procedure.Heart Attack.Value`,
+1655147011576:y = `Procedure.Heart Attack.Cost`)) +
+1655147011578:geom_density_ridges()
+1655147032513:ratings %>%
+1655147032516:ggplot(ratings, aes(x = `Procedure.Heart Attack.Value`,
+1655147032518:y = `Procedure.Heart Attack.Cost`)) +
+1655147032520:geom_point() +
+1655147032522:stat_summary(fun.data = "mean_cl_boot", colour = "red", size = 2)
+1655150689315:table(ohtani_batted_balls$pitch_type)
+1655217972624:ratings %>%
+1655217972629:ggplot(aes(x = Rating.Experience,
+1655217972633:fill = Facility.City)) +
+1655217972636:geom_bar(position = "dodge") + theme_bw()
+1655218032035:# 2D Categorical viz by categorical variable
+1655218032039:ratings %>%
+1655218032042:ggplot(aes(x = Rating.Experience,
+1655218032044:fill = Facility.State)) +
+1655218032047:geom_bar(position = "dodge") + theme_bw()
+1655218096219:ratings %>%
+1655218096222:ggplot(aes(x = Rating.Experience,
+1655218096224:fill = Facility.Type)) +
+1655218096226:geom_bar(position = "dodge") + theme_bw()
+1655218130723:ratings %>%
+1655218130725:ggplot(aes(x = avg(Rating.Experience),
+1655218130727:fill = Facility.Type)) +
+1655218130729:geom_bar(position = "dodge") + theme_bw()
+1655218165666:ratings %>%
+1655218165669:ggplot(aes(x = Rating.Experience,
+1655218165671:fill = Facility.State)) +
+1655218165673:geom_bar(position = "dodge") + theme_bw()
+1655219005886:chisq.test(table(ratings$Facility.Type, ratings$Rating.Experience))
+1655219129648:ratings %>%
+1655219129650:ggplot(aes(x = Rating.Overall,
+1655219129652:fill = Facility.Type)) +
+1655219129653:geom_histogram(alpha = .25, position = "identity") +
+1655219129655:theme_bw() + theme(legend.position = "bottom")
+1655219163289:ratings %>%
+1655219163302:ggplot(aes(x = Rating.Overall,
+1655219163307:fill = Facility.Type)) +
+1655219163310:geom_histogram(alpha = .25, position = "dodge") +
+1655219163317:theme_bw() + theme(legend.position = "bottom")
+1655219211881:ratings %>%
+1655219211888:ggplot(aes(x = Rating.Overall,
+1655219211890:fill = Facility.Type)) +
+1655219211893:geom_histogram(alpha = .5, position = "dodge") +
+1655219211895:theme_bw() + theme(legend.position = "bottom")
+1655219303071:ratings %>%
+1655219303073:ggplot(aes(x = `Procedure.Heart Attack.Cost`,
+1655219303075:color = Facility.Type)) +
+1655219303077:stat_ecdf() +
+1655219303079:theme_bw() +
+1655219303080:theme(legend.position = "bottom")
+1655219355995:ratings %>%
+1655219355998:ggplot(aes(x = Rating.Effectiveness,
+1655219356000:color = Facility.Type)) +
+1655219356001:stat_ecdf() +
+1655219356003:theme_bw() +
+1655219356005:theme(legend.position = "bottom")
+1655219373858:ratings %>%
+1655219373860:ggplot(aes(x = Rating.Overall,
+1655219373863:color = Facility.Type)) +
+1655219373865:stat_ecdf() +
+1655219373867:theme_bw() +
+1655219373869:theme(legend.position = "bottom")
+1655219468584:mosaicplot(table(ratings$Facility.Type, ratings$Rating.Mortality),
+1655219468586:shade = TRUE, main = "Relationship between batted ball and pitch type?")
+1655219527575:mosaicplot(table(ratings$Facility.Type, ratings$Rating.Mortality),
+1655219527578:main = "Relationship between batted ball and pitch type?")
+1655219554063:mosaicplot(table(ratings$Facility.Type, ratings$Rating.Overall),
+1655219554065:main = "Relationship between batted ball and pitch type?")
+1655219637003:mosaicplot(table(ratings$Facility.Type, ratings$Rating.Effectiveness),
+1655219637005:main = "Relationship between batted ball and pitch type?")
+1655219680682:mosaicplot(table(ratings$Facility.Type, ratings$Rating.Safety),
+1655219680685:main = "Relationship between batted ball and pitch type?")
+1655219735027:ratings %>%
+1655219735029:ggplot(aes(x = `Procedure.Heart Attack.Cost`,
+1655219735031:color = Facility.Type)) +
+1655219735033:stat_ecdf() +
+1655219735035:theme_bw() +
+1655219735037:theme(legend.position = "bottom")
+1655220052594:gapminder %>%
+1655220052596:ggplot(aes(x = gdp)) +
+1655220052596:geom_histogram()
+1655220064147:library(tidyverse)
+1655220064148:library(dslabs)
+1655220076733:install.packages("dslabs")
+1655220083196:library(tidyverse)
+1655220083197:library(dslabs)
+1655220087127:gapminder <- as.tibble(gapminder)
+1655220111633:gapminder %>%
+1655220111634:ggplot(aes(x = log(gdp))) +
+1655220111635:geom_histogram()
+1655220206417:clean_gapminder<- gapminder %>%
+1655220206418:filter(year == 2011, !is.na(gdp)) %>%
+1655220206419:mutate(log_gdp = log_gdp)
+1655220223853:clean_gapminder<- gapminder %>%
+1655220223853:filter(year == 2011, !is.na(gdp)) %>%
+1655220223854:mutate(log_gdp = log(gdp))
+1655220271518:clean_gapminder<- gapminder %>%
+1655220271520:filter(year == 2011, !is.na(gdp)) %>%
+1655220271520:mutate(log_gdp = log(gdp))
+1655220377931:clean_gapminder %>%
+1655220377931:ggplot(aes(x = log_gdp, y = life_expectancy)) +
+1655220377932:geom_point(alpha = 0.75) +
+1655220377933:theme_bw()
+1655220498740:ratings %>%
+1655220498742:ggplot(aes(x = `Procedure.Heart Attack.Cost`, y = `Procedure.Heart Failure.Cost`)) +
+1655220498745:geom_point(alpha = 0.75) +
+1655220498747:theme_bw()
+1655220509969:ratings %>%
+1655220509972:ggplot(aes(x = `Procedure.Heart Attack.Cost`, y = `Procedure.Heart Failure.Cost`)) +
+1655220509974:geom_point(alpha = 0.75) +
+1655220509976:theme_bw()
+1655220537080:ratings %>%
+1655220537082:ggplot(aes(x = Rating.Overall`, y = `Procedure.Heart Failure.Cost`)) +
+1655220593132:ratings %>%
+1655220593134:ggplot(aes(x = Rating.Overall`, y = `Procedure.Heart Attack.Cost`)) +
+1655220600803:ratings %>%
+1655220600805:ggplot(aes(x = Rating.Overall, y = `Procedure.Heart Attack.Cost`)) +
+1655220600807:geom_point(alpha = 0.75) +
+1655220600810:theme_bw()
+1655220711801:init_kmeans <-
+1655220711803:kmeans(dplyr::select(clean_gapminder,
+1655220711803:log_gdp, life_expectancy),
+1655220711804:algorithm = "Lloyd", centers = 3,
+1655220711804:nstart = 1)
+1655220836888:clean_gapminder %>%
+1655220836890:mutate(country_clusters =
+1655220836891:as.factor(init_kmeans$cluster)) %>%
+1655220836892:ggplot(aes(x = log_gdp, y = life_expectancy)) +
+1655220836892:geom_point(alpha = 0.75) +
+1655220836894:ggthemes::scale_color_colorblind() +
+1655220836894:theme_bw() +
+1655220836895:theme(legend.position = "bottom")
+1655220856508:clean_gapminder %>%
+1655220856509:mutate(country_clusters =
+1655220856510:as.factor(init_kmeans$cluster)) %>%
+1655220856510:ggplot(aes(x = log_gdp, y = life_expectancy,
+1655220856511:color = country_clusters)) +
+1655220856512:geom_point(alpha = 0.75) +
+1655220856513:ggthemes::scale_color_colorblind() +
+1655220856513:theme_bw() +
+1655220856514:theme(legend.position = "bottom")
+1655220920825:clean_gapminder %>%
+1655220920826:mutate(country_clusters =
+1655220920827:as.factor(init_kmeans$cluster)) %>%
+1655220920827:ggplot(aes(x = log_gdp, y = life_expectancy,
+1655220920827:color = country_clusters)) +
+1655220920828:geom_point(alpha = 0.75) +
+1655220920828:ggthemes::scale_color_colorblind() +
+1655220920829:theme_bw() +
+1655220920829:theme(legend.position = "bottom") +
+1655220920830:coord_fixed()
+1655221095826:clean_gapminder <- clean_gapminder %>%
+1655221095828:mutate(std_log_gdp = as.numeric(scale(log_gdp)),
+1655221095828:std_life_exp = as.numeric(scale(life_expectancy)))
+1655221104538:clean_gapminder <- clean_gapminder %>%
+1655221104538:mutate(std_log_gdp = scale(log_gdp -mean(log_gdp)) / sd(log_gdp),
+1655221104540:std_life_exp = (life_expectancy - mean(life_expectancy)) /
+1655221104540:sd(life_expectancy))
+1655221108017:clean_gapminder <- clean_gapminder %>%
+1655221108018:mutate(std_log_gdp = as.numeric(scale(log_gdp)),
+1655221108019:std_life_exp = as.numeric(scale(life_expectancy)))
+1655221140685:std_kmeans <-
+1655221140686:kmeans(dplyr::select(clean_gapminder,
+1655221140687:log_gdp, life_expectancy),
+1655221140687:algorithm = "Lloyd", centers = 3,
+1655221140688:nstart = 1)
+1655221198397:clean_gapminder %>%
+1655221198398:mutate(country_clusters =
+1655221198399:as.factor(std_kmeans$cluster)) %>%
+1655221198399:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221198400:color = country_clusters)) +
+1655221198401:geom_point(alpha = 0.75) +
+1655221198402:ggthemes::scale_color_colorblind() +
+1655221198403:theme_bw() +
+1655221198403:theme(legend.position = "bottom") +
+1655221198403:coord_fixed()
+1655221212956:clean_gapminder %>%
+1655221212957:mutate(country_clusters =
+1655221212958:as.factor(std_kmeans$cluster)) %>%
+1655221212958:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221212959:color = country_clusters)) +
+1655221212959:geom_point(alpha = 0.75) +
+1655221212960:ggthemes::scale_color_colorblind() +
+1655221212960:theme_bw() +
+1655221212961:theme(legend.position = "bottom")
+1655221245027:std_kmeans <-
+1655221245029:kmeans(dplyr::select(clean_gapminder,
+1655221245029:std_log_gdp, std_life_exp),
+1655221245030:algorithm = "Lloyd", centers = 3,
+1655221245030:nstart = 1)
+1655221249019:clean_gapminder %>%
+1655221249019:mutate(country_clusters =
+1655221249020:as.factor(std_kmeans$cluster)) %>%
+1655221249021:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221249021:color = country_clusters)) +
+1655221249022:geom_point(alpha = 0.75) +
+1655221249022:ggthemes::scale_color_colorblind() +
+1655221249023:theme_bw() +
+1655221249023:theme(legend.position = "bottom")
+1655221283516:std_kmeans <-
+1655221283517:kmeans(dplyr::select(clean_gapminder,
+1655221283517:std_log_gdp, std_life_exp),
+1655221283518:algorithm = "Lloyd", centers = 3,
+1655221283518:nstart = 1)
+1655221283531:clean_gapminder %>%
+1655221283532:mutate(country_clusters =
+1655221283533:as.factor(std_kmeans$cluster)) %>%
+1655221283534:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221283535:color = country_clusters)) +
+1655221283536:geom_point(alpha = 0.75) +
+1655221283537:ggthemes::scale_color_colorblind() +
+1655221283540:theme_bw() +
+1655221283542:theme(legend.position = "bottom")
+1655221327621:std_kmeans <-
+1655221327621:kmeans(dplyr::select(clean_gapminder,
+1655221327622:std_log_gdp, std_life_exp),
+1655221327623:algorithm = "Lloyd", centers = 4,
+1655221327623:nstart = 1)
+1655221327641:clean_gapminder %>%
+1655221327643:mutate(country_clusters =
+1655221327644:as.factor(std_kmeans$cluster)) %>%
+1655221327645:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221327645:color = country_clusters)) +
+1655221327646:geom_point(alpha = 0.75) +
+1655221327646:ggthemes::scale_color_colorblind() +
+1655221327646:theme_bw() +
+1655221327647:theme(legend.position = "bottom")
+1655221361093:std_kmeans <-
+1655221361094:kmeans(dplyr::select(clean_gapminder,
+1655221361095:std_log_gdp, std_life_exp),
+1655221361095:algorithm = "Lloyd", centers = 3,
+1655221361096:nstart = 1)
+1655221361110:clean_gapminder %>%
+1655221361110:mutate(country_clusters =
+1655221361111:as.factor(std_kmeans$cluster)) %>%
+1655221361112:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221361112:color = country_clusters)) +
+1655221361112:geom_point(alpha = 0.75) +
+1655221361113:ggthemes::scale_color_colorblind() +
+1655221361113:theme_bw() +
+1655221361114:theme(legend.position = "bottom")
+1655221384627:std_kmeans <-
+1655221384627:kmeans(dplyr::select(clean_gapminder,
+1655221384628:std_log_gdp, std_life_exp),
+1655221384629:algorithm = "Hartigan-Wong", centers = 3,
+1655221384629:nstart = 1)
+1655221384649:clean_gapminder %>%
+1655221384650:mutate(country_clusters =
+1655221384651:as.factor(std_kmeans$cluster)) %>%
+1655221384651:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221384652:color = country_clusters)) +
+1655221384652:geom_point(alpha = 0.75) +
+1655221384653:ggthemes::scale_color_colorblind() +
+1655221384654:theme_bw() +
+1655221384656:theme(legend.position = "bottom")
+1655221399197:std_kmeans <-
+1655221399198:kmeans(dplyr::select(clean_gapminder,
+1655221399199:std_log_gdp, std_life_exp),
+1655221399199:algorithm = "Lloyd", centers = 3,
+1655221399200:nstart = 1)
+1655221399212:clean_gapminder %>%
+1655221399213:mutate(country_clusters =
+1655221399214:as.factor(std_kmeans$cluster)) %>%
+1655221399215:ggplot(aes(x = std_log_gdp, y = std_life_exp,
+1655221399216:color = country_clusters)) +
+1655221399217:geom_point(alpha = 0.75) +
+1655221399218:ggthemes::scale_color_colorblind() +
+1655221399219:theme_bw() +
+1655221399220:theme(legend.position = "bottom")
