@@ -1,0 +1,527 @@
+---
+title: 'EDA Project: Hospital Ratings data'
+output: html_document
+---
+
+## Overview
+
+This project will begin on Monday June 13th, and __conclude with a 10-15 minute presentation on Friday, June 24th (either during the morning session from 10:30 to 12 PM or in the afternoon from 1:30 to 3 PM)__. The goal of this project is to practice understanding the structure of a dataset, and to practice generating and evaluating hypotheses using fundamental EDA and data visualization techniques.
+
+## Deliverables
+
+Your team is expected to produce `R Markdown` slides (an example template will be provided shortly) to accompany your 10-15 minute presentation with the following information:
+
+* Explanation of the data structure of the dataset,
+
+* __Three hypotheses__ you are interested in exploring, yes
+
+* __Three data visualizations__ exploring the hypotheses, at least two of which must be multivariate.  __Each visualization must be in a different format__ from the other two, and you must have at least one categorical and one continuous visualization.
+
+1. Bar chat for the overall rating per facility - 1. The Government Facility Type will have the lowest Rating Overall
+
+2. 
+
+* __One clustering example__, yes 
+
+* Conclusions reached for the hypotheses based on your EDA and data visualizations.
+
+## Timeline
+
+There will be two submission deadlines:
+
+**Friday, June 17th @ 5:00 PM EST** - Each student will push their individual code for the project thus far to their GitHub accounts for review. We will then provide feedback on the code submitted.
+
+**Thursday, June 23rd @ 11:59 PM EST** - Slides and full code must be completed and ready for presentation. Send your slides to Prof Yurko's email ([ryurko@andrew.cmu.edu](mailto:ryurko@andrew.cmu.edu)).  All code, visualizations, and presentations must be made in `R`. Take advantage of examples from lecture and the presentation template, but also feel free to explore material online that may be relevant!
+
+
+## Data
+
+Your team is assigned the [__Hospital ratings data__](http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/eda_projects/hospitals.csv). This dataset was curated by the [CORGIS Dataset Project](https://corgis-edu.github.io/corgis/csv/hospitals/) to: _"allow consumers to directly compare across hospitals performance measure information related to heart attack, emergency department care, preventive care, stroke care, and other conditions. The data is part of an Administration-wide effort to increase the availability and accessibility of information on quality, utilization, and costs for effective, informed decision-making."_ Original source of data located [here](https://data.medicare.gov/data/hospital-compare).
+
+Each row of the dataset corresponds to a single hospital and has the following columns (with definitions borrowed the [online glossary](https://corgis-edu.github.io/corgis/csv/hospitals/):
+
+* `Facility.Name`: Name of the hospital
+* `Facility.City`: City in which the hospital is located
+* `Facility.State`: Two letter capitalized abbreviation of the State in which the hospital is located (e.g., AZ is Arizona)
+* `Facility.Type`: Kind of organization operating the hospital: one of Government, Private, Proprietary, Church, or Unknown
+* `Rating.Overall`: Overall rating between 1 and 5 stars, with 5 stars being the highest rating; -1 represents no rating.	
+* `Rating.Mortality`: Above, Same, Below, or Unknown comparison to national hospital mortality
+* `Rating.Safety`: Above, Same, Below, or Unknown comparison to national hospital safety
+* `Rating.Readmission`: Above, Same, Below, or Unknown comparison to national hospital readmission
+* `Rating.Experience`: Above, Same, Below, or Unknown comparison to national hospital patience experience
+* `Rating.Effectiveness`: Above, Same, Below, or Unknown comparison to national hospital effectiveness of care
+* `Rating.Timeliness`: Above, Same, Below, or Unknown comparison to national hospital timeliness of care
+* `Rating.Imaging`:	Above, Same, Below, or Unknown comparison to national hospital effective use of imaging
+* `Procedure.Heart Attack.Cost`: Average cost of care for heart attacks
+* `Procedure.Heart Attack.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for heart attacks
+* `Procedure.Heart Attack.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for heart attacks
+* `Procedure.Heart Failure.Cost`: Average cost of care for heart failure
+* `Procedure.Heart Failure.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for heart failures
+* `Procedure.Heart Failure.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for heart failures
+* `Procedure.Pneumonia.Cost`: Average cost of care for pneumonia
+* `Procedure.Pneumonia.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for pneumonia
+* `Procedure.Pneumonia.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for pneumonia
+* `Procedure.Hip Knee.Cost`: Average cost of care for hip or knee conditions
+* `Procedure.Hip Knee.Quality`: Lower, Average, Worse, or Unknown comparison to national quality of care for hip or knee conditions
+* `Procedure.Hip Knee.Value`: Lower, Average, Worse, or Unknown comparison to national cost of care for hip or knee conditions
+
+```{r}
+library(dplyr)
+library(tidyverse)
+
+ratings <- read_csv("http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/eda_projects/hospitals.csv")
+
+head(ratings)
+dim(ratings)
+summary(ratings)
+str(ratings)
+tail(ratings, 3)
+
+```
+
+
+```{r}
+
+#summary statistics for the Procedure Heart Attack.Cost variable
+ratings %>%
+  group_by(Facility.Type) %>%
+  summarize(mean(`Procedure.Heart Attack.Cost`), min(`Procedure.Heart Attack.Cost`), max(`Procedure.Heart Attack.Cost`))
+
+summary(ratings)
+
+
+```
+
+```{r}
+#Mean and max of the Hip Knee Procedure
+ratings %>%
+  group_by(Facility.Type) %>%
+  summarize(mean(`Procedure.Hip Knee.Cost`), max(`Procedure.Hip Knee.Cost`))
+
+```
+
+
+```{r}
+
+#scatterplot of heart attack cost of care and the value of heart attack cost
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Value`, y = `Procedure.Heart Attack.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 2) +
+  scale_color_brewer(palette = "Set0") +
+  labs(x = "Heart Attack Value", y = "Heart Attack Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+```{r}
+
+table(ratings$Rating.Readmission)
+
+ratings %>%
+  ggplot(aes(x = Rating.Readmission))+
+  geom_bar() +
+  theme_bw()
+
+table(ratings$Rating.Readmission)
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Value`, y = `Procedure.Heart Attack.Cost`,
+             fill = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Heart Attack Value", y = "Heart Attack Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Failure.Value`, y = `Procedure.Heart Failure.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Heart Failure Value", y = "Heart Failure Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+```{r}
+
+#scatterplot of pneumonia cost of care and the value of heart attack cost
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+```{r}
+
+#scatterplot of hip knee cost of care and the value of heart attack cost
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 0.5) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Value`, y = `Procedure.Hip Knee.Cost`,
+             color = Facility.Type)) +
+  geom_point(alpha = 2) +
+  scale_color_brewer(palette = "Set4") +
+  labs(x = "Hip Knee Value", y = "Hip Knee Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+```
+
+```{r}
+
+# Validating that I can use the usmap function to make a map for the State data in 'ratings' 
+
+library(maps)
+
+library(mapdata)
+
+
+library(usmap)
+
+
+
+```
+
+```{r}
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Failure.Cost`, y = `Procedure.Heart Attack.Cost`)) +
+  geom_point(alpha = 0.75) +
+  theme_bw()
+
+table(ratings$Facility.Type, ratings$Facility.Type)
+
+#rating overall by facility type 
+ratings %>%
+  ggplot(aes(x = Rating.Overall,
+           fill = Facility.Type)) +
+  geom_histogram(alpha = 2, position = "dodge") +
+  theme_bw() + 
+  theme(legend.position = "bottom")+
+  labs(title = "Private Hospitals Have the Highest Rating Overall")
+
+
+#Heart Attack Cost of Care by Heart Attack Value of Care
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Value`,
+                      y = `Procedure.Heart Attack.Cost`)) +
+  geom_point() +
+  stat_summary(fun.data = "mean_cl_boot", colour = "red", size = 2)
+```
+
+```{r}
+#Density Curves for each procedure
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Heart Failure.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+ratings %>%
+  ggplot(aes(x = `Procedure.Hip Knee.Cost`)) +
+  geom_density(adjust = 3) +
+  geom_rug(alpha = 0.5) +
+  theme_bw()
+
+
+#Scatterplot showing cost per value for the pneumonia procedure
+ratings %>%
+  ggplot(aes(x = `Procedure.Pneumonia.Value`, y = `Procedure.Pneumonia.Cost`)) +
+  geom_point() +
+  facet_wrap(~ Facility.Type, nrow = 2) +
+  scale_color_brewer(palette = "Set2") +
+  labs(x = "Pneumonia Value", y = "Pneumonia Cost of Care",
+       color = "Facility Type") +
+  theme_bw()
+
+
+#USA Map Plot of Mean HeartAttack Cost 
+state.by <- ratings %>% group_by(Facility.State)
+
+state_heart <- state.by %>% dplyr::summarise(mean_cost = mean(`Procedure.Heart Attack.Cost`))
+
+colnames(state_heart)[1] <- 'state'
+
+library(usmap)
+library(usmapdata)
+
+plot_usmap(data = state_heart, values = "mean_cost", color = "red")
+
+plot_usmap(data = state_heart, values = "mean_cost", color = "red") +
+  scale_fill_continuous(low = 'white', high = 'red')
+
+#USA Map Plot of Mean Rating.Overall
+state.by <- ratings %>% group_by(Facility.State) 
+state_heart <- state.by %>% dplyr::summarise(mean_rating = mean(Rating.Overall))
+colnames(state_heart)[1] <- 'state'
+
+plot_usmap(data = state_heart, values = "mean_rating", color = "red") +
+  scale_fill_continuous(low = 'white', high = 'red') +
+  theme(panel.background = element_rect(color = "black", fill = "lightblue"))
+
+--------------------------------------------------------------------------------------
+#Making the variable 'all_cost' in my 'ratings' dataset  
+
+#ratings_nozero has all of the aprx. 2,500 zero values filtered out
+#ratings has a new column for all_cost0 that keeps the zeroes in while also taking the average cost across all four procedures per hospital in the 'ratings' dataset
+
+ratings_nozero <- ratings %>%
+  filter(`Procedure.Heart Attack.Cost` > 0, `Procedure.Heart Failure.Cost` > 0, Procedure.Pneumonia.Cost > 0, `Procedure.Hip Knee.Cost` > 0) %>%
+  mutate(all_cost = (`Procedure.Heart Attack.Cost` + `Procedure.Heart Failure.Cost` + `Procedure.Pneumonia.Cost` + `Procedure.Hip Knee.Cost`) / 4)
+
+ratings <- ratings %>%
+  mutate(all_cost0 = (`Procedure.Heart Attack.Cost` + `Procedure.Heart Failure.Cost` + `Procedure.Pneumonia.Cost` + `Procedure.Hip Knee.Cost`) / 4)
+
+#Violin-Boxplot
+
+#Violin-Boxplot of the mean of all procedure costs (including Zeroes) in our hospital dataset
+ratings %>%
+  ggplot(aes(x = Facility.Type,
+             y = all_cost0)) +
+  geom_violin() +
+  geom_boxplot(width = .2) +
+  theme_bw()
+
+#Violin-Boxplot of the mean of all procedure costs but with Zeroes filtered out
+ratings_nozero %>%
+  ggplot(aes(x = Facility.Type,
+             y = all_cost)) +
+  geom_violin(aes(fill = factor(Facility.Type))) +
+  geom_boxplot(width = .2) +
+  theme_bw()
+
+
+#A Stacked Bar Plot showing the distribution of frequency of the 4 procedures
+ratings_sub = ratings[c(4,13,16,19,22)]
+procedure_names = c("Empty","Heart Attack", "Heart Failure", "Pneumonia", "Hip Knee")
+type = c()
+procedure = c()
+n = dim(ratings)[1]
+for (i in 1:n){
+  for (j in 2:5){
+    if (as.numeric(ratings_sub[i,j])>0){
+      type = c(type, as.character(ratings_sub[i,1]))
+      procedure = c(procedure, procedure_names[j])
+    }
+  }
+}
+type_procedure = data.frame("Type" = type, "Procedure" = procedure)
+type_procedure %>% ggplot(aes(x = Type, fill = Procedure)) +
+  geom_bar() +
+  labs(title = " ",
+       x = "Type", y = "Procedure")
+
+#
+ratings_one_type <- ratings %>% filter(`Procedure.Heart Attack.Cost` > 0)
+ratings_one_type %>%
+  ggplot(aes(x = Facility.Type,
+             y = `Procedure.Heart Attack.Cost`)) +
+  geom_violin() +
+  geom_boxplot(width = .2) +
+  theme_bw()
+
+# all_cost across all 4 procedures
+
+state.by <- ratings %>% group_by(Facility.State)
+state_heart <- state.by %>% dplyr::summarise(mean_cost22 = mean(all_cost))
+colnames(state_heart)[1] <- 'state'
+
+plot_usmap(data = state_heart, values = "mean_cost22", color = "red") +
+  scale_fill_continuous(low = 'yellow', high = 'darkred')
+
+table(state.by$mean(all_cost))
+
+ratings %>%
+  ggplot(aes(x = allcost,
+           fill = Facility.Type)) +
+  geom_histogram(alpha = 2, position = "dodge") +
+  theme_bw() + 
+  theme(legend.position = "bottom")
+
+
+ratings %>%
+  ggplot(aes(x = Facility.Type,
+             fill = `Procedure.Heart Attack.Cost`)) +
+  geom_bar() + theme_bw()
+
+ratings %>%
+  filter(all_cost > 0) %>%
+  ggplot(aes(x = all_cost)) +
+  geom_histogram() +
+  facet_wrap(~ Facility.Type) +
+  theme_bw()
+
+ratings <- ratings %>%
+  group_by(Facility.State) %>%
+  dplyr::mutate(mean_allcost = mean(all_cost))
+
+#all_cost by Facility.Type 
+ratings %>%
+  filter(mean_allcost > 10000, mean_allcost < 15000) %>%
+  ggplot(aes(x = mean_allcost,
+           fill = Facility.Type)) +
+  geom_histogram(alpha = 2, position = "dodge") +
+  theme_bw() + 
+  theme(legend.position = "bottom")
+
+#new dataframe 
+
+procedure_count <- data.frame("Type" = ratings$Facility.Type,
+                              "Procedure" )
+
+ratings %>%
+  ggplot(aes(x = Facility.Type))
+
+
+state.x77
+```
+```{r}
+
+mean(ratings$`Procedure.Heart Attack.Cost`)
+
+mean(ratings$`Procedure.Heart Failure.Cost`)
+
+mean(ratings$`Procedure.Hip Knee.Cost`)
+
+
+mean(ratings$Procedure.Pneumonia.Cost)
+
+library(cluster)
+library(dslabs)
+
+ratings %>% ggplot(aes(x = `Procedure.Heart Attack.Cost`)) + geom_histogram()
+
+clean_ratings <- ratings %>%
+  filter(`Procedure.Heart Attack.Cost` > 0, `Procedure.Heart Failure.Cost` > 0)
+clean_ratings
+
+#Standardize the variables
+
+clean_ratings <- clean_ratings %>%
+  mutate(std_log_cost = as.numeric(scale(`Procedure.Heart Attack.Cost`, center = TRUE, scale = TRUE)),
+         std_rating_over = as.numeric(scale(`Procedure.Heart Failure.Cost`, center = TRUE, scale = TRUE)))
+
+std_kmeans <- 
+  kmeans(dplyr::select(clean_ratings, std_log_cost, std_rating_over),
+         algorithm = "Lloyd", centers = 2, nstart = 1)
+
+#Clustering Alogrithm for Heart Attack Cost and Heart Failure Cost
+
+clean_ratings %>%
+  mutate(rating_clusters = 
+           as.factor(std_kmeans$cluster)) %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Cost`, y = `Procedure.Heart Failure.Cost`,
+             color = rating_clusters)) +
+  geom_point() + 
+  ggthemes::scale_color_colorblind() +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  coord_fixed()
+
+library(dplyr)
+library(GGally)
+head(ratings)
+cost_col <- ratings %>%
+  select(`Procedure.Heart Attack.Cost`, `Procedure.Heart Failure.Cost`, `Procedure.Pneumonia.Cost`, `Procedure.Hip Knee.Cost`, `Facility.Type`) 
+  # dplyr::select(Procedure.Heart Attack.Cost
+                
+ggpairs(cost_col, columns = 1:4, aes(color = Facility.Type, alpha = 0.5))
+
+noinit_kmeans <- kmeans(dplyr::select(clean_ratings, log_cost),
+         algorithm = "Lloyd", centers = 4,
+         nstart = 1)
+
+
+ratings %>%
+  mutate(country_clusters = 
+           as.factor(init_kmeans$cluster)) %>%
+  ggplot(aes(x = `Procedure.Heart Attack.Cost`, y = `Procedure.Heart Failure.Cost`,
+             color = country_clusters)) +
+  geom_point() + 
+  ggthemes::scale_color_colorblind() +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+state.population <- statepop %>%
+  select(abbr, pop_2015)
+
+state.population %>%
+  mutate()
+
+ratings$Facility.State
+
+Population.Newdf <- rbind(ratings$Facility.State, state.population, added_pop)
+
+Population.Newdf %>%
+  append()
+  append("AS" = 0, 
+                               "GU" = 168783,
+                               "MP" = 57557,
+                               "PR" = 3194000,
+                               "VI" = 106290)
+
+new <- data.frame(added_pop, Population.Newdf)
+
+
+  
+  df <- data.frame("c1" = c(41, 42, 43, 44),
+                 "c2" = c(45, 46, 47, 48),
+                 "c3" = c(49, 50, 51, 52))
+ratings3 <- ratings %>%
+  filter(Facility.State != "AK") %>%
+  group_by(Facility.State) %>%
+  mutate(population = statepop)
+table1$val2 <- statepop$pop_2015[match(ratings$Facility.State, statepop$abbr)]
+```
+
+Hypotheses:
+
+1. The Government Facility Type will have the lowest Rating Overall
+
+2. The average overall cost of all four procedures in a state will be highest in states with the highest population
+
+3. The average overall cost of all four procedures in a state will be lowest in Church Facility Type hospitals 
