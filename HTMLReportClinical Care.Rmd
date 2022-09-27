@@ -1,0 +1,1436 @@
+---
+title: "The Effects of Social and Economic Factors on Death, Health and Survival"
+Name: Cameron, Foday, Tolu
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(dplyr)
+library(usmap)
+library(geofacet)
+library(ggrepel)
+library(ranger)
+library(plotly)
+library(vip)
+```
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+#Data Processing
+county <- read_csv("county_rankings.csv")
+
+county <- county %>% slice(-1)
+
+colnames(county)[4] <- 'state'
+
+county <- county%>%
+  #filter(`County Ranked (Yes=1/No=0)` == 1) %>%
+  rename(premature_AIAN = `Premature death (AIAN)`, premature_Asian = `Premature death (Asian/Pacific Islander)`, premature_Black = `Premature death (Black)`,
+                            premature_Hispanic = `Premature death (Hispanic)`, premature_White = `Premature death (White)`)
+
+my_county_rankings <- county %>%
+  #filter(`County Ranked (Yes=1/No=0)` == 1) %>%
+  dplyr::select(`High school completion raw value`, 
+         `Income inequality raw value`, 
+         `Unemployment raw value`,
+         `state`, Name,
+         `Primary care physicians raw value`, 
+         `Mental health providers raw value`, 
+         premature_AIAN, premature_Asian,
+         premature_Black, premature_Hispanic,
+         premature_White, `Uninsured raw value`, `Preventable hospital stays raw value`, `5-digit FIPS Code`)
+
+colnames(my_county_rankings) = c("hs_completion",
+                                 "income", 
+                                 "unemployment",
+                                 "state",
+                                 "county",
+                                 "primary_care", 
+                                 "mental_health", 
+                                 "premature_AIAN",
+                                 "premature_Asian",
+                                 "premature_Black",
+                                 "premature_Hispanic",
+                                 "premature_White",
+                                 "uninsured",
+                                 "preventable","fips")
+
+write_csv(my_county_rankings, "my_county_rankings.csv")
+```
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+#Read in Data
+county_rankings <- read_csv("./my_county_rankings.csv")
+```
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+##Tolu Data Processing
+library(tidyverse)
+library(usmap)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(maps)
+library(ggridges)
+library(ggrepel)
+library(GGally)
+library(glmnet)
+
+#My data Source
+covid_data <- read_csv("covid_census_county_merged.csv")
+#head(covid_data)
+
+vaccine_data <- read.csv("COVID-19_Vaccinations_in_the_United_States_County.csv")
+#head(vaccine_data)
+
+```
+
+
+## Intro
+
+# 1. COVID-19: 
+
+- It's been almost three years since COVID-19 has been around and affected many people around the world. 
+- Every person in this room has either been exposed to the virus, or been in contact with a person who has the virus. 
+- To alleviate these problems, vaccines were created and administered to the world, as it means to provide protection against the virus. 
+
+How does vaccination rates affect Covid deaths and why do some counties with high vaccination rates still have high Covid death rates?
+
+
+# 2. Access to Healthcare: 
+
+- The motivation and purpose for this research is to highlight the issues and external factors that have impacted people’s access to clinical care, which ultimately determines the status of people’s health in specific areas. 
+
+- According to webmd.com, “Your mental health plays a huge role in your general well-being. Being in a good mental state can keep you healthy and help prevent serious health conditions. 
+
+- A study found that positive psychological well-being can reduce the risks of heart attacks and strokes. On the other hand, poor mental health can lead to poor physical health or harmful behaviors. Depression has been linked to many chronic illnesses. These illnesses include diabetes, asthma, cancer, cardiovascular disease, and arthritis. 
+
+- Mental health conditions can also make dealing with a chronic illness more difficult. "The mortality rate from cancer and heart disease is higher among people with depression or other mental health conditions”. This shows that there is a serious link between mental and physical health. Poor mental health can lead to chronic illness.
+
+
+a. Does higher unemployment or higher uninsured ratings lead to larger amounts of people having poor or fair health?
+
+
+b. Does the amount of health providers in the area affect whether or not you have more or less poor mental health days?
+
+
+# 3. Socioeconomic Factors: 
+
+- The motivation and purpose for this research is to develop a health account that could potentially be used to evaluate the access and quality of direct medical and public health services in a county.
+
+- Inequities in access and quality of health care contribute directly to disparities in health and inequities across socioeconomic factors also known as the social determinants of health.
+
+- The subgroups are determined by demographic factors. Their potential interaction with the medical and public services is tracked through modeling their socioeconomic factors against their death rates and the sum of survivors at the county level. 
+
+- Measuring the health of the population under this assumption reduces to calculating death rates, measuring the health of individual survivors, and aggregating across individuals at the county level.
+
+- Thus, we will look at the rates of years of potential life lost and preventable hospital stays to examine the health of a population or subgroup within a county and the sum (or, equivalently, the average) of the health of survivors in the population or subgroup. 
+
+a. Do income inequality, unemployment and high school completion rates affect the number of premature deaths of certain racial groups at the county level?
+
+b. Do income inequality, unemployment and high school completion rates affect the number of preventable hospital stays of certain racial groups at the county level?
+
+
+## Data 
+
+# Dataset Descriptions: 
+
+- The County Health Rankings dataset has 3,193 observations, and each row in the dataset represents a county in the United States that has given publicly available data.
+
+- The County Health Rankings dataset consists of 256 features that are a mixture of continuous, discrete and categorical variables within these features. 
+
+- 
+
+# Variables: 
+
+- 1. Covid death rate: this is the amount of covid deaths in a particular county divided by the total deaths.
+
+- 2. Vaccination rate: these are different vaccination rates scenarios such as people are vaccinated with one dose and people who are vaccinated with two doses of the Covid-19 vaccine and lastly people who are fully vaccinated with a booster shot.
+
+
+
+# EDA
+
+## Urban Rural Description [Covid-19]
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+#Raw Histogram for Urban Rural Description
+ covid_data %>%
+   ggplot(aes(x= `Urban Rural Description`)) +
+   geom_bar()+
+   theme_bw()
+
+```
+
+
+This is a histogram showing the number of different urban descriptions represented from our data.
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+#Aggregated data
+covid_19 <-covid_data %>%
+  select(`State`, `County Name`, `Total deaths`, `COVID-19 Deaths`) %>%
+  aggregate(cbind(`Total deaths`, `COVID-19 Deaths`) ~ `County Name`+ `State`, mean) 
+  
+colnames(covid_19)[3] <- 'Total_Deaths'
+colnames(covid_19)[4] <- 'Covid_Deaths'
+colnames(covid_19)[1] <- 'County'
+head(covid_19)
+
+vacination_rates <- vaccine_data%>%
+  select(Series_Complete_Pop_Pct, Administered_Dose1_Pop_Pct, Series_Complete_Pop_Pct, Booster_Doses_Vax_Pct, Recip_State, Recip_County, Census2019) %>%
+  aggregate(cbind(Series_Complete_Pop_Pct, Administered_Dose1_Pop_Pct, Booster_Doses_Vax_Pct, Census2019) ~ Recip_State + Recip_County, max)
+colnames(vacination_rates)[1] <- 'State'
+colnames(vacination_rates)[2] <- 'County'
+colnames(vacination_rates)[3] <- 'Fully_Vaccinated'
+colnames(vacination_rates)[4] <- 'Only_One_dose'
+colnames(vacination_rates)[5] <- 'Vacinated+Booseter'
+head(vacination_rates)
+
+comb_data <- inner_join(vacination_rates, covid_19, by = c('County', "State")) %>%
+  aggregate(cbind(Fully_Vaccinated, `Vacinated+Booseter`, Only_One_dose, `Covid_Deaths`, `Total_Deaths`, `Census2019`)  ~ County+ State, mean)
+head(comb_data)
+
+comb_data$`COVID-19 Deaths over Total Deaths` <- comb_data$`Covid_Deaths` / comb_data$`Total_Deaths`
+comb_data$`COVID-19 Deaths over Population` <- comb_data$`COVID-19 Deaths` / comb_data$`Census2019`
+
+comb_data$`COVID-19 Deaths per Capita` <- comb_data$`COVID-19 Deaths over Total Deaths` * 1000
+
+```
+
+
+
+- This plot shows three linear regressions lines corresponding to three different vaccination scenarios in the US.  (Blue shows Vaccinated with only one dose , green represents people who are fully vaccinated with a booster shot and red represents people who are fully vaccinated with two doses of the coronavirus vaccine.
+
+```{r}
+#Line chart for fully vacinated
+# filter out the two top outliers
+ggplot(comb_data, aes(x = `Fully_Vaccinated`, y = `COVID-19 Deaths over Population`)) +
+  geom_point(color="green", size=1) +
+  geom_smooth(formula=y~x, method="lm") +
+  labs(x = "Vaccination Rates (fully Vaxed)", y = "Covid deaths / Total Deaths")
+
+#Line chart for booster
+ggplot(comb_data, aes(x = `Vacinated+Booseter`, y = `COVID-19 Deaths over Total Deaths`)) +
+  geom_point(color="red", size=1) +
+  geom_smooth(formula=y~x, method="lm") +
+  labs(x = "Vaccination Rates (Vaxed with Booster)", y = "Covid deaths / Total Deaths")
+
+#Line chart for only one dose
+# convert the `COVID-19 Deaths over Total Deaths` to per 100,000 people (per capita)
+ggplot(comb_data, aes(x = Only_One_dose, y = `COVID-19 Deaths over Total Deaths`))+
+  geom_point(color="blue", size=1) +
+  geom_smooth(formula=y~x, method="lm") +
+  labs(x = "Vaccination Rates (Only one dose)", y = "Covid deaths / Total Deaths") 
+```
+
+```{r}
+outlier_ix <- which(comb_data$Fully_Vaccinated > 75 & comb_data$`COVID-19 Deaths over Total Deaths`>0.21)
+comb_data[outlier_ix,]
+```
+
+```{r}
+colors = c("Vacinated+Booseter" = "green", "Only_One_dose" = "blue", "Fully_Vaccinated"="red" )
+gfg_plot <- ggplot(comb_data, aes(y = `COVID-19 Deaths per Capita` )) +  
+  # geom_point(aes(x = Only_One_dose), col = "blue", alpha = 0.5) +
+  # geom_point(aes(x = Fully_Vaccinated), col = "red", alpha = 0.5) +
+  #geom_point(aes(x = `Vacinated+Booseter`), col = "green", alpha = 0.5) +
+  geom_smooth(aes(x = `Vacinated+Booseter`,color = "Vacinated+Booseter"), formula=y~x, method="lm") +
+  geom_smooth(aes(x = `Only_One_dose`, color = "Only_One_dose"), formula=y~x, method="lm") +
+  geom_smooth(aes(x = `Fully_Vaccinated`, color = "Fully_Vaccinated"), formula=y~x, method="lm") +
+  theme_bw() +
+  labs(x = "Vaccination Rates", y = "Covid deaths / Total Deaths (Per 1000)",
+       color = "Legend") +
+  scale_color_manual(values = colors)
+gfg_plot
+```
+
+
+## Does higher unemployment or higher uninsured ratings lead to larger amounts of people having poor or fair health?
+
+# Variables: 
+
+- Unemployment raw value (Percentage of population ages 16 and older unemployed but seeking work)
+
+- Uninsured raw value (Percentage of population under age 65 without health insurance)
+
+- Poor or Fair Health raw value (Percentage of adults reporting fair or poor health (age-adjusted)
+
+
+# EDA: 
+
+## Hypothesis - States with higher Unemployment ratings or higher Uninsured people will result
+#large percentages of people with poor, or fair health.
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+county_health_rankings <- read_csv("county_rankings.csv")
+
+## Deleting the US row
+county_health_sel <- county_health_rankings[-1,]
+
+
+## Selecting my variables
+county_health_sel <- county_health_sel %>%
+  select(`State Abbreviation`,`Uninsured raw value`,`Unemployment raw value`, `Poor or fair health raw value`)
+
+##Averaging the varaibles values
+county_health_sel <- county_health_sel %>%
+  group_by(`State Abbreviation`) %>%
+  mutate("new_unemployment" = mean(`Unemployment raw value`)) %>%
+  mutate("new_uninsured" = mean(`Uninsured raw value`)) %>%
+  mutate("new_poor_health" = mean(`Poor or fair health raw value`))
+
+##Selecting my variables of new data set
+county_health_sel <- county_health_sel %>%
+  select(`State Abbreviation`, new_unemployment, new_uninsured, new_poor_health)
+
+
+##Grouping variables by State Abb, and with the 3 variables
+county_health_sel <- county_health_sel %>%
+group_by(`State Abbreviation`) %>%
+  summarize(totaL_new_unemployment = mean(new_unemployment),totaL_new_uninsured = mean(new_uninsured),
+            totaL_new_poor_health = mean(new_poor_health))
+
+
+county_health_sel <- na.omit(county_health_sel)
+
+## Converting the variables into percentages
+county_health_sel <- county_health_sel %>%
+  mutate(totaL_new_unemployment = totaL_new_unemployment * 100,totaL_new_uninsured = totaL_new_uninsured * 100,
+         totaL_new_poor_health = totaL_new_poor_health * 100)
+
+
+## Change the name for columns
+county_health_sel <- county_health_sel %>%
+  rename(state = `State Abbreviation`)
+```
+
+
+## Unemployment Rating Map for all 50 states
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+plot_usmap(data = county_health_sel, values = "totaL_new_unemployment", color = "black") +
+  scale_fill_continuous(
+    low = "white", high = "blue", name = "Unemployment Ratings (%)", label = scales::comma
+  ) + theme(legend.position = "bottom") + labs(title = "Unemployment Ratings for US States")
+
+```
+## Uninsured Ratings Map for all 50 states
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+plot_usmap(data = county_health_sel, values = "totaL_new_uninsured",color = "black") +
+  scale_fill_continuous(
+    low = "white", high = "red", name = "Uninsured Ratings (%)", label = scales::comma
+  ) + theme(legend.position = "bottom") + labs(title = "Uninsured Ratings for US States")
+```
+
+## Poor or Fair Health Ratings Map for all 50 states
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+plot_usmap(data = county_health_sel, values = "totaL_new_poor_health" ,color = "black") +
+  scale_fill_continuous(
+    low = "white", high = "purple", name = "Poor or Fair Health Ratings (%)", label = scales::comma
+  ) + theme(legend.position = "bottom") + labs(title = "Poor of Fair Health Ratings for US States")
+
+```
+
+# Results: Higher Uninsured Ratings does lead to higher Poor or Fair Health Ratings
+#but Unemployment does not.
+
+
+#Question - Does the amount of Mental health providers given in each area leads to more
+#Poor mental health day in a particular population.
+
+# Variables: 
+
+- Mental health providers raw value (Ratio of population to mental health providers)
+- Poor mental health days raw value (Average number of mentally unhealthy days reported in past 30 days age-adjusted)
+
+##Hypothesis- Less Mental health providers provided in an area will likely to lead to a person
+#having more Poor mental health days.
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+mental_health <- county_health_rankings %>%
+  select(`State Abbreviation`, `Name`, `Mental health providers raw value`,
+         `Poor mental health days raw value`,`State FIPS Code`)
+colnames(mental_health)[2] <- 'County_Name'
+mental_health <- mental_health[-1,]
+
+#Remove NAs from new data sheet
+mental_health <- na.omit(mental_health)
+
+
+mental_health <- mental_health %>%
+  mutate("new_mental_health_providers" = (`Mental health providers raw value`) *100)
+
+# Renaming column
+mental_health <- mental_health %>%
+  rename(Poor_Mental_Days = `Poor mental health days raw value`)
+```
+
+## Scatter plot displaying Mental Health Providers vs. Poor Mental Health Days
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+mental_health %>%
+  ggplot(aes(x = new_mental_health_providers, y = Poor_Mental_Days)) +
+  geom_point(alpha = 0.3)
+
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+county_pop <- countypop
+#Rename `County_Name` to `county`
+county_pop <- county_pop %>%
+  rename(County_Name = county)
+
+
+fips_mental_county <- mental_health %>%
+  inner_join(county_pop, by = "County_Name")
+
+fips_mental_county <- fips_mental_county %>%
+  select(1:6)
+
+fips_mental_county <- fips_mental_county %>%
+  rename(state = `State Abbreviation`)
+
+fips_mental_county <- fips_mental_county %>%
+  mutate(mental_health_providers = `Mental health providers raw value` *100)
+
+fips_mental_county <- fips_mental_county %>%
+  rename(Poor_mental_days = `Poor_Mental_Days`)
+
+
+## US Map plot for the amount of mental health providers in each county
+plot_usmap(regions = "counties",
+           data = fips_mental_county,
+           values = "mental_health_providers", color = "black") +
+  scale_fill_continuous(name = "Mental Health Providers (%)",
+                        low = 'orange', high = 'green', label = scales::comma) +
+  theme(legend.position = "right") +
+  labs(title = "Percentage of Mental Health Providers Per US County")
+
+
+## US Map plot for the average poor mental health days in each county
+plot_usmap(regions = "counties",
+           data = fips_mental_county,
+           values = "Poor_mental_days", color = "black") +
+  scale_fill_continuous(name = "Poor Mental Health Days" ,
+                        low = 'green', high = 'blue', label = scales::comma) +
+  theme(legend.position = "right") +
+  labs(title = "Average Poor Mental Health Days Per US County")
+```
+
+## Results - Yes, this shows that less mental providers leads to people having more poor mental health days
+
+
+# Question - Do income inequality, unemployment and high school completion rates affect the number of premature deaths of certain racial groups at the county level?
+
+##Hypothesis - Better income inequality ratios, unemployment rates and high school completion rateswill be association with a lower Years of Potential Life Lost rate but there will be confounding variables that will allow us definitely conclude what variables will lead to decreased YPLL rates per racial group
+
+# Variables: 
+
+income: Ratio of household income at the 80th percentile to income at the 20th percentile.
+
+unemployment: Percentage of population ages 16 and older unemployed but seeking work.
+
+hs_completion: Percentage of adults ages 25 and over with a high school diploma or equivalent.
+
+premature_deaths: Years of potential life lost before age 75 per 100,000 population (age-adjusted). This is a count of the number of years instead of the number of deaths. 
+
+mental_health: Ratio of population to mental health providers.
+
+primary_care: Ratio of population to primary care physicians.
+
+# EDA:
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+pivot_rankings <- county_rankings %>%
+  pivot_longer(c(premature_AIAN, premature_Asian, premature_Black, premature_Hispanic, premature_White), names_prefix = "premature_", names_to = "race", values_to = "premature_deaths") #%>%
+  #mutate(log_county = log(premature_deaths))
+
+pivot_rankings2 <- na.omit(pivot_rankings)
+
+pivot_rankings %>%
+  ggplot(aes(x = race, y = premature_deaths)) +
+  geom_violin() +
+  geom_boxplot(width = .2) +
+  theme_bw() + labs(x = "Race", y = "Years of Potential Life Lost Rate (per 100,000 population)")
+```
+The number of years of premature death (years of life lost) across American counties is highest among the Native American population followed by the Black population, and the number of premature deaths across these counties is lowest among the Asian/Pacific Islander population.
+
+
+
+
+##Visualization of Pivot_Longer [premature_deaths]
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+pivot_rankings2 %>%
+  ggplot(aes(x = premature_deaths)) +
+  geom_histogram() +
+  facet_wrap(~ race) +
+  theme_bw() + labs(x = "Years of Potential Life Lost Rate (per 100,000 population)")
+
+```
+
+This histogram sows the disproportionate distribution of premature death years across the five racial groups we are examining in our EDA. 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+pivot_rankings2 %>%
+  ggplot(aes(x = income, y = premature_deaths, color = race)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~race) +
+  theme_bw() + labs(x = "Ratio of Income Inequality", y = "Years of Potential Life Lost Rate (per 100,000 population)")
+```
+
+
+When looking at the income [inequality] variable we see that an increase in income inequality across all racial groups except for the Asian/Pacific Islander population are associated with an increase in years of life lost (premature death years). 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+pivot_rankings2 %>%
+  ggplot(aes(x = unemployment, y = premature_deaths, color = race)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~race) +
+  theme_bw() + labs(x = "Unemployment Rate (%)", y = "Years of Potential Life Lost Rate (per 100,000 population)")
+
+```
+
+
+When looking at unemployment, as the percentage of population 16 and older unemployed increases, it seems that an increase in unemployment rates is assocaited with an increase in the number of years of potential life lost premature deaths increases steadily. Unemployment seems to be an important variable across all races as the premature deaths for each of the five racial groups is dependent on the unemployment variable. 
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+hsplot <- pivot_rankings2 %>%
+  ggplot(aes(x = hs_completion, y = premature_deaths, color = race)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~race) +
+  theme_bw() + labs(x = "High school Completion Rate (%)", y = "Years of Potential Life Lost Rate (per 100,000 population)")
+
+ggplotly(hsplot)
+```
+
+
+When looking at highschool completion rates, an increase in the percentage of adults 25 and older in a county with high school diplomas seems to be associated with a decrease in years of potential life lost (premature death years).  
+
+##County Plot Premature Deaths
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+subset <- county %>%
+  dplyr::select(Name, `Premature death raw value`, `5-digit FIPS Code`)
+subset$fips <- as.character(subset$`5-digit FIPS Code`)
+subset$premature_deaths <- subset$`Premature death raw value`
+names(subset)
+n = dim(subset)[1]
+for(i in 1:n){
+  if(nchar(subset$fips[i]) == 4){
+    subset$fips[i] = paste('0', subset$fips[i], sep = '')
+  }
+}
+subset_s <- inner_join(countypop, subset, by = "fips")
+plot_usmap(regions = "counties",
+           data = subset_s,
+           values = "premature_deaths", color = "white") +
+  scale_fill_continuous(name = "Years of Potential Life Lost (100,000 population)",
+                        low = 'purple', high = 'green', label = scales::comma) +
+  theme(legend.position = "right") + labs(title = "Years of Potential Life Lost for US Counties")
+
+```
+
+##Second Research Question for Race:
+#Do income inequality, unemployment and high school completion rates affect the number of preventable hospital stays of certain racial groups at the county level?
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+##Data Processing
+county2 <- county %>%
+  #filter(`County Ranked (Yes=1/No=0)` == 1) %>%
+  rename(preventable_AIAN = `Preventable hospital stays (AIAN)`, preventable_Asian = `Preventable hospital stays (Asian/Pacific Islander)`, preventable_Black = `Preventable hospital stays (Black)`,
+                            preventable_Hispanic = `Preventable hospital stays (Hispanic)`, preventable_White = `Preventable hospital stays (White)`)
+
+my_county_rankings2 <- county2 %>%
+  #filter(`County Ranked (Yes=1/No=0)` == 1) %>%
+  dplyr::select(`High school completion raw value`, 
+         `Income inequality raw value`, 
+         `Unemployment raw value`,
+         `state`, Name,
+         `Primary care physicians raw value`, 
+         `Mental health providers raw value`, 
+         preventable_AIAN, preventable_Asian,
+         preventable_Black, preventable_Hispanic,
+         preventable_White, `Uninsured raw value`, `Premature death raw value`, `5-digit FIPS Code`)
+
+colnames(my_county_rankings2) = c("hs_completion",
+                                 "income", 
+                                 "unemployment",
+                                 "state",
+                                 "county",
+                                 "primary_care", 
+                                 "mental_health", 
+                                 "preventable_AIAN",
+                                 "preventable_Asian",
+                                 "preventable_Black",
+                                 "preventable_Hispanic",
+                                 "preventable_White",
+                                 "uninsured",
+                                 "premature","fips")
+
+write_csv(my_county_rankings2, "./_county_rankings2.csv")
+```
+
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+##Read in Data
+county_rankings2 <- read_csv("./_county_rankings2.csv")
+```
+
+
+##Ranking the Selected Variables by State
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+cols <- c(1,2,3,6,7)
+colnames(county_rankings2)[cols]
+df <- data.frame(state=c(), variable=c(), rank=c())
+
+for (col in cols){
+  colname <- colnames(county_rankings2)[col]
+  sub <- county_rankings2[,c(4,col)]
+  
+  sub <- sub[!duplicated(sub[,1]), ]
+  
+  colnames(sub) <- c("state", "rank")
+  ix <- sort(sub$rank, decreasing = TRUE, index.return = TRUE)$ix
+  sub <- sub[ix, ]
+  sub$variable <- colname
+  sub$rank <- as.numeric(c(1:dim(sub)[1]))
+  
+  df <- rbind(df, sub)
+}
+
+rank_table <- ggplot(df, aes(variable, rank, fill = variable)) +
+  geom_col() +
+  coord_flip() +
+  theme_bw() +
+  facet_geo(~ state) +
+  theme(axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5))
+  
+
+ggplotly(rank_table)
+```
+
+##Visualization of Pivot_Longer [preventable_stays]
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+subse <- county_rankings2 %>%
+  dplyr::select(county,fips, preventable_AIAN, hs_completion, income, unemployment, state, primary_care, mental_health, preventable_Asian, preventable_Black, preventable_Hispanic, preventable_White, uninsured, premature)
+subse$fips <- as.character(subse$fips)
+names(subse)
+n = dim(subse)[1]
+for(i in 1:n){
+  if(nchar(subse$fips[i]) == 4){
+    subse$fips[i] = paste('0', subse$fips[i], sep = '')
+  }
+}
+subset_s <- inner_join(countypop, subse, by = "fips")
+
+subset_s
+longer_rankings <- subset_s %>%
+  pivot_longer(c(preventable_AIAN, preventable_Asian, preventable_Black, preventable_Hispanic, preventable_White), names_prefix = "preventable_", names_to = "race", values_to = "preventable_stays") #%>%
+  #mutate(all_longer = log(preventable_stays))
+
+longer_rankings2 <- na.omit(longer_rankings)
+
+longer_rankings2 %>%
+  ggplot(aes(x = preventable_stays)) +
+  geom_histogram() +
+  facet_wrap(~ race) +
+  theme_bw() + labs(x = "Preventable Hospital Stays per 100,000 population")
+```
+
+
+
+##County Plot Preventable Hospital Stays
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+subset <- county %>%
+  dplyr::select(Name, `Preventable hospital stays raw value`, `5-digit FIPS Code`)
+subset$fips <- as.character(subset$`5-digit FIPS Code`)
+subset$preventable_stays <- subset$`Preventable hospital stays raw value`
+names(subset)
+n = dim(subset)[1]
+for(i in 1:n){
+  if(nchar(subset$fips[i]) == 4){
+    subset$fips[i] = paste('0', subset$fips[i], sep = '')
+  }
+}
+subset_s <- inner_join(countypop, subset, by = "fips")
+
+plot_usmap(regions = "counties",
+           data = subset_s,
+           values = "preventable_stays", color = "white") +
+  scale_fill_continuous(name = "Number of Preventable Hospital Stays per 100,000 population",
+                        low = 'purple', high = 'green', label = scales::comma) +
+  theme(legend.position = "right")
+
+library(plotly)
+
+
+
+```
+
+## Methods
+
+1. Random Forest Modeling
+
+- A random forest model was initially chosen because the RMSE of the model was less than that of the KNN model and multivariate linear regression. 
+
+- The predictions for the larger model of our outcome variables (premature deaths and preventable hospital stays) were plotted against the observed values on the y-axis to see how well the model was at predicting both premature deaths and preventable hospital stays considering our explanatory variables in this particular model. 
+
+2. Random Forest Modeling by Race
+- Despite not having demographic data per input variable (explanatory variables) in our model, there are random forest models per race (Native American, Asian/Pacific Islander, Black, Hispanic, and White). 
+
+Here the motivation was to see:
+  - If certain explanatory variables were more important to certain races versus other races.
+  - How well the model was at predicting certain counties with certain confounding factors (population size, presence of a Native American reservation, or other systematic factors). 
+  
+3. Random Forest Modeling + A Population Variable
+The motivation for joining a table with county population data to the county health rankings was to see if the random forest model would perform better with this variable. 
+
+4. Logistic Regression 
+
+The goal of using logistics regression analysis is to see if one can create predictions, based on former Covid data, the probability of a county having high Covid rates in the future.
+
+
+## Results
+
+# Random Forest with Years of Potential Life Lost (premature_deaths) as the predictor variable
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+init_rank_rf <- 
+  ranger(premature_deaths ~ ., data = pivot_rankings2,
+         num.trees = 50, importance = "impurity")
+
+#hist(pivot_rankings2$premature_deaths)
+
+plot(init_rank_rf$predictions, pivot_rankings2$premature_deaths) +
+abline(a = 0,b = 1) + theme_bw()
+
+library(vip)
+vip(init_rank_rf, geom = "col") + labs(title = "Variable Importance for Premature Deaths") + theme_bw()
+
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+act_pred <- (pivot_rankings2$premature_deaths - init_rank_rf$predictions)
+
+m <- 200
+high_outlier <- sort(act_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+normal <- sort(act_pred, decreasing = TRUE, index.return = TRUE)$ix[m:length(act_pred)]
+
+#df1 = pivot_rankings2[high_outlier,]
+#df2 = pivot_rankings2[normal,]
+#df1$g = 'high outlier'
+#df2$g = 'normal'
+#df = rbind(df1, df2)
+#p1 <- ggplot(df, aes(x = unemployment, fill = g)) +
+  #geom_density(alpha=0.3)
+#p1
+
+
+#sub_pivot <- pivot_rankings2[act_pred, ]
+#table(sub_pivot$race)
+#table(sub_pivot$state)
+
+
+#fNA = pivot_rankings2[high_outlier,]
+
+#fNA$county
+#fNA$state
+
+label <- paste(pivot_rankings2$county, pivot_rankings2$state, sep = ', ')
+label[normal] <- ''
+
+df = pivot_rankings2
+df$label = label
+df$predictions = init_rank_rf$predictions
+ggplot(df, aes(predictions, premature_deaths, label = label)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm", se = FALSE) + theme_bw()
+```
+
+# Random Forest with A Population Variable
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+subset <- county_rankings %>%
+  dplyr::select(county,fips, premature_AIAN, hs_completion, income, unemployment, state, primary_care, mental_health, premature_Asian, premature_Black, premature_Hispanic, premature_White, uninsured, preventable)
+subset$fips <- as.character(subset$fips)
+names(subset)
+n = dim(subset)[1]
+for(i in 1:n){
+  if(nchar(subset$fips[i]) == 4){
+    subset$fips[i] = paste('0', subset$fips[i], sep = '')
+  }
+}
+subset_t <- inner_join(countypop, subset, by = "fips")
+
+subset_t
+
+subset_t$pop_2015 = log(subset_t$pop_2015)
+
+
+```
+
+## Random Forest 
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+pt_rankings <- subset_t %>%
+  pivot_longer(c(premature_AIAN, premature_Asian, premature_Black, premature_Hispanic, premature_White), names_prefix = "premature_", names_to = "race", values_to = "premature_deaths") #%>%
+  #mutate(pt_log = log(premature_deaths))
+
+pt_rankings2 <- na.omit(pt_rankings)
+
+pt_rankings2
+
+pt_rankings2$premature_deaths = log(pt_rankings2$premature_deaths)
+
+new_rf_df <- pt_rankings2 %>%
+  select(-fips, -abbr, -county.y)
+
+ini_rank_rf <- 
+  ranger(premature_deaths ~ ., data = new_rf_df,
+         num.trees = 50, importance = "impurity")
+
+ini_rank_rf
+
+#hist(pt_rankings2$premature_deaths)
+
+#plot(ini_rank_rf$predictions, pt_rankings2$premature_deaths) +
+#abline(a = 0,b = 1)
+
+N_pred <- (exp(pt_rankings2$premature_deaths) - exp(ini_rank_rf$predictions))
+m <- 7
+high_outlier3 <- sort(N_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+
+norma <- sort(N_pred, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(N_pred)]
+labe <- paste(pt_rankings2$county.x, pt_rankings2$state, sep = ', ')
+labe[norma] <- ''
+
+pt_rankings2$premature_deaths = exp(pt_rankings2$premature_deaths)
+
+df_pop = pt_rankings2
+df_pop$labe = labe
+df_pop$predictions = exp(ini_rank_rf$predictions)
+ggplot(df_pop, aes(predictions, premature_deaths, label = labe)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm", se = FALSE) + labs(title ="Outlier Counties in Random Forest Model with County Populations") + theme_bw()
+
+vip(ini_rank_rf, geom = "col") + labs(title = "Variable Importance for Premature Deaths + Population Variable") + theme_bw()
+```
+
+## Random Forests by Race
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+#Native Amemrican with Population 
+pt_NA <- new_rf_df %>%
+  dplyr::filter(race == "AIAN")
+
+ini_rf_NA <-
+  ranger(premature_deaths ~ ., data = pt_NA,
+         num.trees = 50, importance = "impurity")
+
+ini_rf_NA
+
+#plot(ini_rf_NA$predictions, pt_NA$premature_deaths) +
+  #abline(a = 0, b = 1) + geom_smooth(method = "lm")
+
+
+NAAN_pred <- (exp(pt_NA$premature_deaths) - exp(ini_rf_NA$predictions))
+m <- 7
+high_outlier3 <- sort(NAAN_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+normal3 <- sort(NAAN_pred, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(NAAN_pred)]
+label3 <- paste(pt_NA$county.x, pt_NA$state, sep = ', ')
+label3[normal3] <- ''
+
+
+df3 = pt_NA
+df3$label3 = label3
+df3$predictions = exp(ini_rf_NA$predictions)
+df3$premature_deaths = exp(df3$premature_deaths)
+ggplot(df3, aes(predictions, premature_deaths, label = label3)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Years of Potential Life Lost", y = "Years of Potential Life Lost Rate")
+
+
+ef_NA = pt_NA[high_outlier3,]
+
+ef_NA$county.x
+ef_NA$state
+
+vip(ini_rf_NA, geom = "col") + labs(title = "Variable Importance for Native American Premature Deaths") + theme_bw()
+
+#Asian with Population 
+
+pt_Asian <- new_rf_df %>%
+  dplyr::filter(race == "Asian")
+
+ini_rf_Asian <-
+  ranger(premature_deaths ~ ., data = pt_Asian,
+         num.trees = 50, importance = "impurity")
+
+ini_rf_Asian
+
+#plot(ini_rf_Asian$predictions, pt_Asian$premature_deaths) +
+  #abline(a = 0, b = 1) + geom_smooth(method = "lm")
+
+
+Asian_pred <- (exp(pt_Asian$premature_deaths) - exp(ini_rf_Asian$predictions))
+m <- 7
+high_outlier4 <- sort(Asian_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+normal4 <- sort(Asian_pred, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(Asian_pred)]
+label4 <- paste(pt_Asian$county.x, pt_Asian$state, sep = ', ')
+label4[normal4] <- ''
+
+
+df4 = pt_Asian
+df4$label4 = label4
+df4$predictions = exp(ini_rf_Asian$predictions)
+df4$premature_deaths = exp(df4$premature_deaths)
+ggplot(df4, aes(predictions, premature_deaths, label = label4)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Years of Potential Life Lost", y = "Years of Potential Life Lost Rate")
+
+
+ef_Asian = pt_Asian[high_outlier4,]
+
+ef_Asian$county.x
+ef_Asian$state
+
+vip(ini_rf_Asian, geom = "col") + labs(title = "Variable Importance for Asian Premature Deaths") + theme_bw()
+
+#Black with Population
+
+pt_Black <- new_rf_df %>%
+  dplyr::filter(race == "Black")
+
+ini_rf_Black <-
+  ranger(premature_deaths ~ ., data = pt_Black,
+         num.trees = 50, importance = "impurity")
+
+ini_rf_Black
+#plot(ini_rf_Black$predictions, pt_Black$premature_deaths) +
+  #abline(a = 0, b = 1) + geom_smooth(method = "lm")
+
+
+Black_pred <- (exp(pt_Black$premature_deaths) - exp(ini_rf_Black$predictions))
+m <- 7
+high_outlier5 <- sort(Black_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+normal5 <- sort(Black_pred, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(Black_pred)]
+label5 <- paste(pt_Black$county.x, pt_Black$state, sep = ', ')
+label5[normal5] <- ''
+
+
+df5 = pt_Black
+df5$label5 = label5
+df5$predictions = exp(ini_rf_Black$predictions)
+df5$premature_deaths = exp(df5$premature_deaths)
+ggplot(df5, aes(predictions, premature_deaths, label = label5)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Years of Potential Life Lost", y = "Years of Potential Life Lost Rate")
+
+
+ef_Black = pt_Black[high_outlier5,]
+
+ef_Black$county.x
+ef_Black$state
+
+vip(ini_rf_Black, geom = "col") + labs(title = "Variable Importance for Black Premature Deaths") + theme_bw()
+
+#Hispanic with Population
+
+pt_Hispanic <- new_rf_df %>%
+  dplyr::filter(race == "Hispanic")
+
+ini_rf_Hispanic <-
+  ranger(premature_deaths ~ ., data = pt_Hispanic,
+         num.trees = 50, importance = "impurity")
+
+ini_rf_Hispanic
+
+#plot(ini_rf_Hispanic$predictions, pt_Hispanic$premature_deaths) +
+  #abline(a = 0, b = 1) + geom_smooth(method = "lm")
+
+
+Hispanic_pred <- (exp(pt_Hispanic$premature_deaths) - exp(ini_rf_Hispanic$predictions))
+m <- 7
+high_outlier6 <- sort(Hispanic_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+normal6 <- sort(Hispanic_pred, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(Hispanic_pred)]
+label6 <- paste(pt_Hispanic$county.x, pt_Hispanic$state, sep = ', ')
+label6[normal6] <- ''
+
+
+df6 = pt_Hispanic
+df6$label6 = label6
+df6$predictions = exp(ini_rf_Hispanic$predictions)
+df6$premature_deaths = exp(df6$premature_deaths)
+ggplot(df6, aes(predictions, premature_deaths, label = label6)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Years of Potential Life Lost", y = "Years of Potential Life Lost Rate")
+
+
+ef_Hispanic = pt_Hispanic[high_outlier6,]
+
+ef_Hispanic$county.x
+ef_Hispanic$state
+
+vip(ini_rf_Hispanic, geom = "col") + labs(title = "Variable Importance for Hispanic Premature Deaths") + theme_bw()
+
+##White with Population 
+
+pt_White <- new_rf_df %>%
+  dplyr::filter(race == "White")
+
+ini_rf_White <-
+  ranger(premature_deaths ~ ., data = pt_White,
+         num.trees = 50, importance = "impurity")
+
+ini_rf_White
+
+#plot(ini_rf_White$predictions, pt_White$premature_deaths) +
+  #abline(a = 0, b = 1) + geom_smooth(method = "lm")
+
+
+White_pred <- (exp(pt_White$premature_deaths) - exp(ini_rf_White$predictions))
+m <- 7
+high_outlier7 <- sort(White_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+normal7 <- sort(White_pred, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(White_pred)]
+label7 <- paste(pt_White$county.x, pt_White$state, sep = ', ')
+label7[normal7] <- ''
+
+
+df7 = pt_White
+df7$label7 = label7
+df7$predictions = exp(ini_rf_White$predictions)
+df7$premature_deaths = exp(df7$premature_deaths)
+ggplot(df7, aes(predictions, premature_deaths, label = label7)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Years of Potential Life Lost", y = "Years of Potential Life Lost Rate")
+
+
+ef_White = pt_White[high_outlier7,]
+
+ef_White$county.x
+ef_White$state
+
+vip(ini_rf_White, geom = "col") + labs(title = "Variable Importance for White Premature Deaths") + theme_bw()
+```
+
+##Random Forest Modeling with Population variable and Preventable Stays 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+subse <- county_rankings2 %>%
+  dplyr::select(county,fips, preventable_AIAN, hs_completion, income, unemployment, state, primary_care, mental_health, preventable_Asian, preventable_Black, preventable_Hispanic, preventable_White, uninsured, premature)
+subse$fips <- as.character(subse$fips)
+names(subse)
+n = dim(subse)[1]
+for(i in 1:n){
+  if(nchar(subse$fips[i]) == 4){
+    subse$fips[i] = paste('0', subse$fips[i], sep = '')
+  }
+}
+subset_s <- dplyr::inner_join(countypop, subse, by = "fips")
+
+subset_s
+
+subset_s$pop_2015 = log(subset_s$pop_2015)
+
+
+longer_rankings <- subset_s %>%
+  pivot_longer(c(preventable_AIAN, preventable_Asian, preventable_Black, preventable_Hispanic, preventable_White), names_prefix = "preventable_", names_to = "race", values_to = "preventable_stays") #%>%
+  #mutate(all_longer = log(preventable_stays))
+
+
+
+longer_rankings2 <- na.omit(longer_rankings)
+
+longer_rankings2$preventable_stays = log(longer_rankings2$preventable_stays)
+
+new_rf_df2 <- longer_rankings2 %>%
+  select(-fips, -abbr, -county.y)
+
+
+in_rank_rf <- 
+  ranger(preventable_stays ~ ., data = new_rf_df2,
+         num.trees = 50, importance = "impurity")
+
+in_rank_rf
+
+#hist(longer_rankings2$preventable_stays)
+
+#plot(in_rank_rf$predictions, longer_rankings2$premature_deaths) +
+#abline(a = 0,b = 1)
+
+Prev_pred <- (exp(longer_rankings2$preventable_stays) - exp(in_rank_rf$predictions))
+m <- 7
+hgh_outlier3 <- sort(Prev_pred, decreasing = TRUE, index.return = TRUE)$ix[1:m]
+
+orma <- sort(Prev_pred, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(Prev_pred)]
+lab <- paste(longer_rankings2$county.x, longer_rankings2$state, sep = ', ')
+lab[orma] <- ''
+
+prev_pop = longer_rankings2
+prev_pop$lab = lab
+prev_pop$predictions = exp(in_rank_rf$predictions)
+prev_pop$preventable_stays = exp(prev_pop$preventable_stays)
+ggplot(prev_pop, aes(predictions, preventable_stays, label = lab)) +
+  geom_point(alpha = 0.3) +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm", se = FALSE) + labs(title ="Outlier Counties in Random Forest Model with County Populations for Prev Stays") + theme_bw() + labs(x = "Predictions for Preventable Stays", y = "Preventable Stays per 100,000 population ")
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+##Random Forest for Native Americans
+
+#Random Forest with Pivot NA 
+
+longer_NA <- new_rf_df2 %>%
+  dplyr::filter(race == "AIAN")
+
+initial_rf_NA <-
+  ranger(preventable_stays ~ ., data = longer_NA,
+         num.trees = 50, importance = "impurity")
+
+initial_rf_NA
+
+#plot(initial_rf_NA$predictions, longer_NA$preventable_stays) +
+  #abline(a = 0, b = 1) #+ labs(x = "Predictions for Years of Potential Life Lost", y = "Preventable Stays per 100,000 population")
+
+
+NA_predict <- (exp(longer_NA$preventable_stays) - exp(initial_rf_NA$predictions))
+m <- 7
+high_out2 <- sort(NA_predict, decreasing = TRUE, index.return = TRUE)$iy[1:m]
+norm2 <-  sort(NA_predict, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(NA_predict)]
+lab2 <- paste(longer_NA$county.x, longer_NA$state, sep = ', ')
+lab2[norm2] <- ''
+
+cf_NA <- longer_NA[high_out2,]
+
+cf_NA$county.y
+cf_NA$state
+
+
+cf_NA = longer_NA
+cf_NA$lab2 = lab2
+cf_NA$predictions = exp(initial_rf_NA$predictions)
+cf_NA$preventable_stays = exp(cf_NA$preventable_stays)
+ggplot(cf_NA, aes(predictions, preventable_stays, label = lab2)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Preventable Hospital Stays", y = "Preventable Hospital Stays")
+
+vip(initial_rf_NA, geom = "col") + labs(title = "Variable Importance for Native Ammerican Preventable Hospital Stays") + theme_bw()
+
+#Random Forest with Pivot Asian 
+
+longer_Asian <- new_rf_df2 %>%
+  dplyr::filter(race == "Asian")
+
+initial_rf_Asian <-
+  ranger(preventable_stays ~ ., data = longer_Asian,
+         num.trees = 50, importance = "impurity")
+
+initial_rf_Asian
+
+plot(initial_rf_Asian$predictions, longer_Asian$preventable_stays) +
+  abline(a = 0, b = 1) #+ labs(x = "Predictions for Years of Potential Life Lost", y = "Preventable Stays per 100,000 population")
+
+
+Asian_prediction <- (exp(longer_Asian$preventable_stays) - exp(initial_rf_Asian$predictions))
+m <- 7
+high_out3 <- sort(Asian_prediction, decreasing = TRUE, index.return = TRUE)$iy[1:m]
+norm3 <-  sort(Asian_prediction, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(Asian_prediction)]
+lab3 <- paste(longer_Asian$county.x, longer_Asian$state, sep = ', ')
+lab3[norm3] <- ''
+
+cf_Asian <- longer_Asian[high_out3,]
+
+cf_Asian$county.y
+cf_Asian$state
+
+
+cf_Asian = longer_Asian
+cf_Asian$lab3 = lab3
+cf_Asian$predictions = exp(initial_rf_Asian$predictions)
+cf_Asian$preventable_stays = exp(cf_Asian$preventable_stays)
+ggplot(cf_Asian, aes(predictions, preventable_stays, label = lab3)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Preventable Hospital Stays", y = "Preventable Hospital Stays")
+
+vip(initial_rf_Asian, geom = "col") + labs(title = "Variable Importance for Asian Preventable Hospital Stays") + theme_bw()
+
+#Random Forest with Pivot Black 
+
+longer_Black <- new_rf_df2 %>%
+  dplyr::filter(race == "Black")
+
+initial_rf_Black <-
+  ranger(preventable_stays ~ ., data = longer_Black,
+         num.trees = 50, importance = "impurity")
+
+initial_rf_Black
+
+#plot(initial_rf_Black$predictions, longer_Black$preventable_stays) +
+  #abline(a = 0, b = 1) #+ labs(x = "Predictions for Years of Potential Life Lost", y = "Preventable Stays per 100,000 population ")
+
+
+Black_prediction <- (exp(longer_Black$preventable_stays) - exp(initial_rf_Black$predictions))
+m <- 7
+high_out4 <- sort(Black_prediction, decreasing = TRUE, index.return = TRUE)$iy[1:m]
+norm4 <-  sort(Black_prediction, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(Black_prediction)]
+lab4 <- paste(longer_Black$county.x, longer_Black$state, sep = ', ')
+lab4[norm4] <- ''
+
+cf_Black <- longer_Black[high_out4,]
+
+cf_Black$county.y
+cf_Black$state
+
+cf_Black = longer_Black
+cf_Black$lab4 = lab4
+cf_Black$predictions = exp(initial_rf_Black$predictions)
+cf_Black$preventable_stays = exp(cf_Black$preventable_stays)
+ggplot(cf_Black, aes(predictions, preventable_stays, label = lab4)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Preventable Hospital Stays", y = "Preventable Hospital Stays")
+
+vip(initial_rf_Black, geom = "col") + labs(title = "Variable Importance for Black Preventable Hospital Stays") + theme_bw()
+
+#Random Forest with Pivot Hispanic 
+
+longer_Hispanic <- new_rf_df2 %>%
+  dplyr::filter(race == "Hispanic")
+
+initial_rf_Hispanic <-
+  ranger(preventable_stays ~ ., data = longer_Hispanic,
+         num.trees = 50, importance = "impurity")
+
+initial_rf_Hispanic
+
+#plot(initial_rf_Hispanic$predictions, longer_Hispanic$preventable_stays) +
+  #abline(a = 0, b = 1) #+ labs(x = "Predictions for Years of Potential Life Lost", y = "Preventable Stays per 100,000 population ")
+
+
+Hispanic_prediction <- (exp(longer_Hispanic$preventable_stays) - exp(initial_rf_Hispanic$predictions))
+m <- 7
+high_out5 <- sort(Hispanic_prediction, decreasing = TRUE, index.return = TRUE)$iy[1:m]
+norm5 <-  sort(Hispanic_prediction, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(Hispanic_prediction)]
+lab5 <- paste(longer_Hispanic$county.x, longer_Hispanic$state, sep = ', ')
+lab5[norm5] <- ''
+
+cf_Hispanic <- longer_Hispanic[high_out5,]
+
+cf_Hispanic$county.y
+cf_Hispanic$state
+
+cf_Hispanic = longer_Hispanic
+cf_Hispanic$lab5 = lab5
+cf_Hispanic$predictions = exp(initial_rf_Hispanic$predictions)
+cf_Hispanic$preventable_stays = exp(cf_Hispanic$preventable_stays)
+ggplot(cf_Hispanic, aes(predictions, preventable_stays, label = lab5)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Preventable Hospital Stays", y = "Preventable Hospital Stays")
+
+vip(initial_rf_Hispanic, geom = "col") + labs(title = "Variable Importance for Hispanic Preventable Hospital Stays") + theme_bw()
+
+#Random Forest with Pivot White 
+
+longer_White <- new_rf_df2 %>%
+  dplyr::filter(race == "White")
+
+initial_rf_White <-
+  ranger(preventable_stays ~ ., data = longer_White,
+         num.trees = 50, importance = "impurity")
+
+initial_rf_White
+
+#plot(initial_rf_White$predictions, longer_White$preventable_stays) +
+  #abline(a = 0, b = 1) #+ labs(x = "Predictions for Years of Potential Life Lost", y = "Preventable Stays per 100,000 population")
+
+
+White_prediction <- (exp(longer_White$preventable_stays) - exp(initial_rf_White$predictions))
+m <- 7
+high_out6 <- sort(White_prediction, decreasing = TRUE, index.return = TRUE)$iy[1:m]
+norm6 <-  sort(White_prediction, decreasing = TRUE, index.return = TRUE)$ix[(m+1):length(White_prediction)]
+lab6 <- paste(longer_White$county.x, longer_White$state, sep = ', ')
+lab6[norm6] <- ''
+
+cf_White <- longer_White[high_out6,]
+
+cf_White$county.y
+cf_White$state
+
+cf_White = longer_White
+cf_White$lab6 = lab6
+cf_White$predictions = exp(initial_rf_White$predictions)
+cf_White$preventable_stays = exp(cf_White$preventable_stays)
+ggplot(cf_White, aes(predictions, preventable_stays, label = lab6)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) + geom_text_repel() + geom_smooth(method = "lm") + theme_bw() + labs(x = "Predictions for Preventable Hospital Stays", y = "Preventable Hospital Stays")
+
+cf_White <- longer_White[high_out5,]
+
+cf_White$county.y
+cf_White$state
+
+vip(initial_rf_White, geom = "col") + labs(title = "Variable Importance for White Preventable Hospital Stays") + theme_bw()
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+# Logistic Regression
+# # if vax rate > 70% high_not_high = 1, else, high_not_high = 1
+high_not_high = c()
+for (val in comb_data$`Fully_Vaccinated`) {
+  if (val > 70) {
+    high_not_high = c(high_not_high, 1)
+  } else {
+    high_not_high = c(high_not_high, 0)
+  } }
+print(high_not_high)
+
+high_not_high <- 1 * (comb_data$Fully_Vaccinated > 70)
+comb_data$high_indicator <- high_not_high
+
+comb_data$`COVID-19 Deaths over Population` = comb_data$`COVID-19 Deaths over Population` / mean(comb_data$`COVID-19 Deaths over Population`)
+mylogit <- glm(high_indicator ~ `COVID-19 Deaths over Population`, data = comb_data, family = "binomial")
+summary(mylogit)
+```
+
+
+This Logit regression plot is  for the Covid Deaths deaths/ total population data , with vaccination rates converted to binary data points (Counties with high vaccination rates, higher than 70%  are given a value of 1 and counties with low vax rates, less than 70%, are given a value 0f 0.) 
+
+
+##Calibration Plot for Logistic Regression
+
+
+Calibration plot was made to show how well the logistic regression is performing.
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+comb_data %>%
+  mutate(pred_prob = mylogit$fitted.values,
+         bin_pred_prob = round(pred_prob / 0.05) * .05) %>%
+  # Group by bin_pred_prob:
+  group_by(bin_pred_prob) %>%
+  # Calculate the calibration results:
+  summarize(bin_actual_prob = mean(high_indicator)) %>%
+  ggplot(aes(x = bin_pred_prob, y = bin_actual_prob)) +
+  geom_point(aes()) +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_abline(slope = 1, intercept = 0, 
+              color = "black", linetype = "dashed") +
+  coord_equal() + 
+  scale_x_continuous(limits = c(0,1)) + 
+  scale_y_continuous(limits = c(0,1)) + 
+  labs(size = "Number of attempts",
+       x = "Estimated probability",
+       y = "Observed probability") + 
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+
+
+Calibration plot for predicted data for model assessment. The goal is to eventually fine tune the data (i.e taking account of the effect of outliers on the skewness.)
+
+
+##Prediction Model
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+#The prediction model
+colnames(comb_data)
+model <- lm(`COVID-19 Deaths over Population` ~ 
+              Only_One_dose + `Fully_Vaccinated` + `Vacinated+Booseter`, data = comb_data)
+
+#comb_data$State[sort(comb_data$`COVID-19 Deaths over Population`, decreasing = TRUE, index.return = TRUE)$ix[c(1,2)]]
+
+#sum((model$residuals)**2)
+```
+
+```{r}
+comb_data %>%
+  mutate(model_preds = predict(model)) %>%
+  ggplot(aes(x = model_preds, y = `COVID-19 Deaths over Population`)) +
+  geom_point(alpha = 0.75) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dashed", color = "red") +
+  theme_bw() +
+  labs(x = "Predictions", y = "Observed")
+
+
+comb_data %>%
+  mutate(model_preds = predict(model)) %>%
+  ggplot(aes(y = model_preds, x = Fully_Vaccinated)) +
+  geom_point(alpha = 0.75) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dashed", color = "red") +
+  theme_bw() +
+  labs(x = "Predictions", y = "Observed")
+
+## Vaccination Rates (One-Dose)
+
+comb_data %>%
+  mutate(pred_prob = mylogit$fitted.values) %>% #<<
+  ggplot(aes(x = `COVID-19 Deaths over Population`)) +
+  geom_line(aes(y = pred_prob), 
+            color = "blue") +
+  geom_point(aes(y = high_indicator), 
+             alpha = 0.3,
+             color = "darkorange") +
+  theme_bw()
+
+
+```
+
+More model assessments for our predictions,  showing a few outliers. Outliers turned out to be a few counties in Texas.
+
+## Conclusion
+
+
+## Limitations 
+
+The Limitations for the County Health Ranking dataset include:
+
+- Limited demographic for different racial groups
+- Too many raw value variables so we had to convert some of the variables to percentages when doing our EDA
+- 
+
+
+## Future Work
+
+COVID-19:
+
+- A Poisson regression to predict Covid deaths and counties with high Covid transmission Rates
+
+Access to Care:
+
+- The Data Analysis for Access to Care can lead to practical applications like where to map new facilities that assist health like for mental health. 
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
