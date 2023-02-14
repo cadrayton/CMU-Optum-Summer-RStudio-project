@@ -1,2 +1,2 @@
 # summer-eda-project
-Repository for the summer CMSA camp for statistics and data science
+Repository for the summer CMSA camp through Carnegie Mellon University's Department of Statistics and Data Science
